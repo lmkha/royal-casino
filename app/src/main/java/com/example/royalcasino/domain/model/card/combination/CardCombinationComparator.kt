@@ -1,20 +1,19 @@
 package com.example.royalcasino.domain.model.card.combination
 
 import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.CardComparator
 import com.example.royalcasino.domain.model.card.rank.CardRankComparator
 import com.example.royalcasino.domain.model.card.suit.CardSuit
 
 class CardCombinationComparator {
     companion object {
         fun compare(combination1: CardCombination, combination2: CardCombination): Int {
-            val combination1Type: CardCombinationType = combination1.getType()
-            val combination2Type: CardCombinationType = combination2.getType()
+            val combination1Type: CardCombinationType = combination1.type
+            val combination2Type: CardCombinationType = combination2.type
 
             if (combination1Type == CardCombinationType.NO_COMBINATION ||
                 combination2Type == CardCombinationType.NO_COMBINATION ||
-                combination1Type != combination2Type)
-                return 0
+                combination1Type != combination2Type
+            ) throw IllegalArgumentException("Invalid comparison between $combination1Type and $combination2Type")
 
             return when (combination1Type) {
                 CardCombinationType.SINGLE -> SingleCombinationComparator.compare(combination1, combination2)
@@ -32,7 +31,7 @@ class CardCombinationComparator {
 class SingleCombinationComparator  {
     companion object {
         fun compare(a: CardCombination, b: CardCombination): Int {
-            return CardComparator.compare(a.getCard(0), b.getCard(0))
+            return a.getCard(0).compareTo(b.getCard(0))
         }
     }
 }
@@ -70,12 +69,12 @@ class FourOfAKindCombinationComparator {
 class StraightCombinationComparator {
     companion object {
         fun compare(a: CardCombination, b: CardCombination): Int {
-            val sizeA: Int = a.getSize()
-            val sizeB: Int = b.getSize()
+            val sizeA: Int = a.size
+            val sizeB: Int = b.size
             if (sizeA == 0 || sizeB == 0 || sizeA != sizeB) return 0
             val sortedCardsA: List<Card> = a.getAllCards().sortedBy { it.rank.ordinal }
             val sortedCardsB: List<Card> = b.getAllCards().sortedBy { it.rank.ordinal }
-            return CardComparator.compare(sortedCardsA[sizeA - 1], sortedCardsB[sizeB - 1])
+            return sortedCardsA[sizeA - 1].compareTo(sortedCardsB[sizeB - 1])
         }
     }
 }
@@ -83,8 +82,8 @@ class StraightCombinationComparator {
 class ConsecutivePairsCombinationComparator {
     companion object {
         fun compare(a: CardCombination, b: CardCombination): Int {
-            val sizeA: Int = a.getSize()
-            val sizeB: Int = b.getSize()
+            val sizeA: Int = a.size
+            val sizeB: Int = b.size
             if (sizeA == 0 || sizeB == 0) return 0
             if (sizeA > sizeB) return 1
             if (sizeA < sizeB) return -1

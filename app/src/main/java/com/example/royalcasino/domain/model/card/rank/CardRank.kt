@@ -1,7 +1,6 @@
 package com.example.royalcasino.domain.model.card.rank
 
-enum class CardRank(val label: String) {
-    TWO("2"),
+enum class CardRank(val label: String) : Comparable<CardRank> {
     THREE("3"),
     FOUR("4"),
     FIVE("5"),
@@ -13,5 +12,6 @@ enum class CardRank(val label: String) {
     JACK("J"),
     QUEEN("Q"),
     KING("K"),
-    ACE("A")
+    ACE("A"),
+    TWO("2"),
 }

@@ -9,13 +9,14 @@ import com.example.royalcasino.domain.model.turn.TurnAction
 
 class Round(
     private val hands: List<Hand>,
-    startIndex: Int,
-    private val onRoundEnd: (indexOfWonHand: Int) -> Unit = {}
+    startHand: Hand,
+    private val onRoundEnd: (wonHand: Hand) -> Unit = {},
+    private val onHandFinished: (hand: Hand) -> Unit = {}
 ) {
     private var currentTurn: Turn? = null
     private var previousTurn: Turn? = null
     private var followingHandIndexes: MutableList<Int> = hands.indices.toMutableList()
-    private var currentIndex: Int = startIndex
+    private var currentIndex: Int = hands.indexOf(startHand)
 
     private fun isAcceptableCombination(combination: CardCombination?) : Boolean {
         val typeOfCombination = combination?.type
@@ -59,27 +60,31 @@ class Round(
             }
             CardCombinationType.STRAIGHT -> {
                 if (currentTurnCombinationType == CardCombinationType.STRAIGHT &&
+                    currentTurn?.combination?.size == combination.size &&
                     combination > currentTurn?.combination!!
                 ) return true
             }
             CardCombinationType.CONSECUTIVE_PAIRS -> {
+                // both 3 consecutive pairs and 4 consecutive pairs are able to "cut the pig"
                 if (currentTurnCombinationType == CardCombinationType.SINGLE &&
                     currentTurn?.combination?.getCard(0)?.rank == CardRank.TWO
                 ) return true
-
+                // 4 consecutive pairs is able to "cut 2 pigs"
                 if (currentTurnCombinationType == CardCombinationType.PAIR &&
                     currentTurn?.combination?.getCard(0)?.rank == CardRank.TWO &&
                     combination.size == 8
                 ) return true
-
-                if (currentTurnCombinationType == CardCombinationType.CONSECUTIVE_PAIRS &&
-                    combination.size > currentTurn?.combination?.size!!
-                ) return true
-
+                // 4 consecutive pairs is able to "cut" FOUR_OF_A_KIND"
                 if (currentTurnCombinationType == CardCombinationType.FOUR_OF_A_KIND &&
                     combination.size == 8
                 ) return true
 
+                // 4 consecutive pairs > 3 consecutive pairs
+                if (currentTurnCombinationType == CardCombinationType.CONSECUTIVE_PAIRS &&
+                    combination.size > currentTurn?.combination?.size!!
+                ) return true
+
+                // compare 4 vs 4, 3 vs 3
                 if (currentTurnCombinationType == CardCombinationType.CONSECUTIVE_PAIRS &&
                     combination.size == currentTurn?.combination?.size &&
                     combination > currentTurn?.combination!!
@@ -92,9 +97,8 @@ class Round(
     private fun makeDecisionForHand(turn: Turn, accept: Boolean) {
         hands[followingHandIndexes[currentIndex]].makeTurn(turn = turn, roundAccept = accept)
     }
-    private fun handleFireTurn(turn: Turn) {
-        val acceptable = isAcceptableCombination(turn.combination)
-        if (!acceptable) {
+    private fun handlePlayTurn(turn: Turn) {
+        if (!isAcceptableCombination(turn.combination)) {
             makeDecisionForHand(turn, false)
             throw IllegalArgumentException("Your combination is not be accepted.")
         }
@@ -102,6 +106,17 @@ class Round(
         previousTurn = currentTurn
         currentTurn = turn.deepCopy()
         makeDecisionForHand(turn, true)
+
+        // If this hand had finished, remove it from following hands list
+        if (hands[followingHandIndexes[currentIndex]].numberOfRemainingCards == 0) {
+            onHandFinished(hands[followingHandIndexes[currentIndex]])
+            followingHandIndexes.removeAt(currentIndex)
+            if (currentIndex == followingHandIndexes.size) {
+                currentIndex = 0
+            }
+            return
+        }
+
         currentIndex = (currentIndex + 1) % followingHandIndexes.size
     }
     private fun handleSkipTurn(turn: Turn) {
@@ -109,15 +124,11 @@ class Round(
             makeDecisionForHand(turn, false)
             throw IllegalStateException("The first turn of a round cannot be a SKIP turn.")
         }
-        if (followingHandIndexes.size <= 1) {
-            makeDecisionForHand(turn, false)
-            throw IllegalStateException("Cannot skip turn when there is only one hand left.")
-        }
+        makeDecisionForHand(turn, true)
         followingHandIndexes.removeAt(currentIndex)
         if (currentIndex == followingHandIndexes.size) {
             currentIndex = 0
         }
-        makeDecisionForHand(turn, true)
     }
     fun processTurn(turn: Turn) {
         if (hands.isEmpty()) {
@@ -137,12 +148,24 @@ class Round(
         }
 
         when(turn.turnAction) {
-            TurnAction.FIRE -> handleFireTurn(turn)
+            TurnAction.PLAY -> handlePlayTurn(turn)
             TurnAction.SKIP -> handleSkipTurn(turn)
         }
 
-        if (followingHandIndexes.size == 1) {
-            onRoundEnd(followingHandIndexes.first())
+        // A hand had just finished and there is no hand follow theirs turn, so the next to hand have right to begin the new round
+        if (followingHandIndexes.size == 0) {
+            for (i in hands.indices) {
+                if (hands[i].owner == currentTurn?.owner) {
+                    val indexOfHandBeginNextRound = (i + 1) % hands.size
+                    onRoundEnd(hands[indexOfHandBeginNextRound])
+                    return
+                }
+            }
+            return
+        }
+        // This case is when you had not finished and there is no hand still follow this round, so you have right to begin the new round
+        if (followingHandIndexes.size == 1 && hands[followingHandIndexes[currentIndex]].owner == currentTurn?.owner) {
+            onRoundEnd(hands[followingHandIndexes.first()])
         }
     }
 }

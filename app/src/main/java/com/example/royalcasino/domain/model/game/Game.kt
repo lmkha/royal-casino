@@ -12,17 +12,17 @@ import com.example.royalcasino.domain.model.turn.TurnAction
 
 // Game: A game round
 class Game(players: List<Player>) {
-    private var hands: MutableList<Hand> = mutableListOf()
     private lateinit var deck: Deck
+    private var hands: MutableList<Hand> = mutableListOf()
     private var currentRound: Round? = null
-    var indexOfHandWonPreviousRound = 0
-        private set
+    private var handWonPreviousRound: Hand
     private var result: MutableList<Player> = mutableListOf()
 
     init {
         players.forEach { player ->
             hands.add(Hand(player))
         }
+        handWonPreviousRound = hands[0]
     }
 
     fun setupNewGame() {
@@ -39,20 +39,42 @@ class Game(players: List<Player>) {
         }
     }
 
-    fun startNewGame() {
-        currentRound = Round(hands = hands, startIndex = 0, onRoundEnd = { indexOfWonHand ->
-            indexOfHandWonPreviousRound = indexOfWonHand
-            startNewRound()
-        })
-    }
-    private fun startNewRound() {
-        currentRound = Round(hands = hands, startIndex = indexOfHandWonPreviousRound) { indexOfWonHand ->
-            indexOfHandWonPreviousRound = indexOfWonHand
-        }
+    fun devSetupGame() {
+        hands[0].receiveCards(listOf(
+            Card(CardRank.SIX, CardSuit.CLUB),
+            Card(CardRank.TWO, CardSuit.SPADE),
+        ))
+        hands[1].receiveCards(listOf(
+            Card(CardRank.ACE, CardSuit.DIAMOND),
+        ))
+        hands[2].receiveCards(listOf(
+            Card(CardRank.SIX, CardSuit.DIAMOND),
+            Card(CardRank.FIVE, CardSuit.HEART),
+            Card(CardRank.SEVEN, CardSuit.CLUB),
+        ))
+        hands[3].receiveCards(listOf(
+            Card(CardRank.NINE, CardSuit.HEART),
+            Card(CardRank.EIGHT, CardSuit.SPADE),
+        ))
+        hands.forEach { it.sortCardsInHand() }
     }
 
-    fun getMyHand(): Hand {
-        return hands[0]
+    fun startNewGame() {
+        startNewRound()
+    }
+
+    private fun startNewRound() {
+        currentRound = Round(
+            hands = hands.filter { it.numberOfRemainingCards > 0 },
+            startHand = handWonPreviousRound,
+            onRoundEnd = { wonHand ->
+                handWonPreviousRound = wonHand
+                startNewRound()
+            },
+            onHandFinished = { handFinished ->
+                handleHandFinished(handFinished)
+            }
+        )
     }
 
     fun getHand(handIndex: Int): Hand {
@@ -62,57 +84,74 @@ class Game(players: List<Player>) {
     fun processTurn(turn: Turn) {
         currentRound?.processTurn(turn)
     }
-    fun isGameOver() {
 
+    private fun handleHandFinished(hand: Hand) {
+        result.add(hand.owner)
+        // Game over, add the remaining hand to to end of result list
+        if (result.size == hands.size - 1) {
+            handleGameOver()
+        }
+    }
+
+    private fun handleGameOver() {
+        val remainingHandOwner = hands.find { it.numberOfRemainingCards != 0 }?.owner
+        if (remainingHandOwner != null) {
+            result.add(remainingHandOwner)
+        }
+        showResult()
+    }
+
+    private fun showResult() {
+        println("Game over!!!\nResult:")
+        result.forEachIndexed { index, player ->
+            println("Rank ${index+1}: ${player.name}")
+        }
     }
 
     fun checkAutoWin() {
-
     }
 }
 
 fun main() {
     val game = Game(players = listOf(
-        Player("player1"),
+        Player("Kha"),
         Player("player2"),
         Player("player3"),
         Player("player4"),
     ))
-    game.setupNewGame()
-    val hand01: Hand = game.getMyHand()
-    val hand02: Hand = game.getHand(1)
-    val hand03: Hand = game.getHand(2)
-    val hand04: Hand = game.getHand(3)
 
+    game.devSetupGame()
     game.startNewGame()
 
-    hand01.addCardToCombination(0)
-    hand01.addCardToCombination(1)
-    hand01.addCardToCombination(4)
+    val hand1 = game.getHand(0)
+    val hand2 = game.getHand(1)
+    val hand3 = game.getHand(2)
+    val hand4 = game.getHand(3)
 
-    println("Index of previous round won: ${game.indexOfHandWonPreviousRound}")
+    hand1.addCardToCombination(0)
+    game.processTurn(hand1.pushTurnToRound(TurnAction.PLAY))
 
-    game.processTurn(hand01.pushTurnToRound(TurnAction.FIRE))
-    println("Hand01 cards:")
-    hand01.showAllCardsInHand()
+    hand2.addCardToCombination(0)
+    game.processTurn(hand2.pushTurnToRound(TurnAction.PLAY))
 
-    hand02.addCardToCombination(2)
-    hand02.addCardToCombination(4)
-    hand02.addCardToCombination(6)
+    game.processTurn(hand3.pushTurnToRound(TurnAction.SKIP))
 
-    game.processTurn(hand02.pushTurnToRound(TurnAction.FIRE))
+    game.processTurn(hand4.pushTurnToRound(TurnAction.SKIP))
 
-    game.processTurn(hand03.pushTurnToRound(TurnAction.SKIP))
+    game.processTurn(hand1.pushTurnToRound(TurnAction.SKIP))
 
-    game.processTurn(hand04.pushTurnToRound(TurnAction.SKIP))
+    hand3.addCardToCombination(2)
+    hand3.addCardToCombination(0)
+    hand3.addCardToCombination(1)
+    game.processTurn(hand3.pushTurnToRound(TurnAction.PLAY))
 
-    hand01.addCardToCombination(2)
-    hand01.addCardToCombination(3)
-    hand01.addCardToCombination(4)
+    game.processTurn(hand4.pushTurnToRound(TurnAction.SKIP))
 
-    game.processTurn(hand01.pushTurnToRound(TurnAction.SKIP))
+    game.processTurn(hand1.pushTurnToRound(TurnAction.SKIP))
 
-    hand02.addCardToCombination(8)
-    game.processTurn(hand02.pushTurnToRound(TurnAction.FIRE))
-    hand02.showAllCardsInHand()
+    hand4.addCardToCombination(1)
+    game.processTurn(hand4.pushTurnToRound(TurnAction.PLAY))
+
+    hand1.addCardToCombination(0)
+    game.processTurn(hand1.pushTurnToRound(TurnAction.PLAY))
 }

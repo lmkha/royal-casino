@@ -2,16 +2,17 @@ package com.example.royalcasino.domain.model.game
 
 import com.example.royalcasino.domain.model.Deck
 import com.example.royalcasino.domain.model.card.Card
+import com.example.royalcasino.domain.model.card.combination.CardCombination
+import com.example.royalcasino.domain.model.card.combination.CardCombinationType
 import com.example.royalcasino.domain.model.card.rank.CardRank
 import com.example.royalcasino.domain.model.card.suit.CardSuit
 import com.example.royalcasino.domain.model.hand.Hand
 import com.example.royalcasino.domain.model.player.Player
 import com.example.royalcasino.domain.model.round.Round
 import com.example.royalcasino.domain.model.turn.Turn
-import com.example.royalcasino.domain.model.turn.TurnAction
 
-// Game: A game round
 class Game(players: List<Player>) {
+    private var isFirstGame: Boolean = true
     private lateinit var deck: Deck
     private var hands: MutableList<Hand> = mutableListOf()
     private var currentRound: Round? = null
@@ -108,50 +109,112 @@ class Game(players: List<Player>) {
         }
     }
 
-    fun checkAutoWin() {
+    fun checkAndHandleAutoWin() {
+        // Make sure that cards in hand were sorted
+        /*
+        If this is the first game:
+            + Consecutive pairs include Card(CardRank.THREE, CardSuit.SPADE)
+            + 4 of a kind (CardRank.THREE)
+        */
+        if (isFirstGame) {
+            // Cards in hand were sorted, so if all 4 beginning cards have Rank.Three, then it's auto win
+            run {
+                val firstGameHaveRankThreeX4Hand = hands.find { hand->
+                    hand.getCardsInHand().subList(0, 4).all { it.rank == CardRank.THREE }
+                }
+                if (firstGameHaveRankThreeX4Hand != null) {
+                    result.add(firstGameHaveRankThreeX4Hand.owner)
+                }
+            }
+
+            // Consecutive pairs include Card(CardRank.THREE, CardSuit.SPADE)
+            run {
+                val firstGameHaveConsecutivePairIncludeSpadeThree = hands.find { hand->
+                    val sixBeginningCardsOfHand = hand.getCardsInHand().subList(0, 6)
+                    sixBeginningCardsOfHand.contains(Card(CardRank.THREE, CardSuit.SPADE)) &&
+                            CardCombination(sixBeginningCardsOfHand).type == CardCombinationType.CONSECUTIVE_PAIRS
+                }
+                if (firstGameHaveConsecutivePairIncludeSpadeThree != null) {
+                    result.add(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
+                }
+            }
+        }
+        /*
+        Not the first game
+           + Three of a kind x 4
+           + Pair x 6
+           + 5 consecutive pair
+           + Four of a kind(CardRank.TWO)
+           + Straight with length = 12
+        */
+
+        // Three of a kind x 4
+        run {
+            hands.forEach { hand->
+                val rankMap = mutableMapOf<CardRank, Int>()
+                var threeOfAKindCount = 0
+                hand.getCardsInHand().map { it.rank }.forEach { rank->
+                    rankMap[rank] = rankMap.getOrDefault(rank, 0) + 1
+                }
+                if (rankMap.size == 4) result.add(hand.owner)
+                if (rankMap.size == 5) {
+                    rankMap.forEach { (_, count) ->
+                        if (count >= 3) threeOfAKindCount++
+                    }
+                    if (threeOfAKindCount == 4) result.add(hand.owner)
+                }
+            }
+        }
+
+        // Pair x6
+        run {
+            hands.forEach { hand->
+                val rankSet = mutableSetOf<CardRank>()
+                hand.getCardsInHand().forEach { card: Card ->
+                    rankSet.add(card.rank)
+                }
+                if (rankSet.size <= 7) {
+                    result.add(hand.owner)
+                }
+            }
+        }
+
+        // 5 consecutive pairs
+        run {
+            hands.forEach { hand->
+                val rankMap = mutableMapOf<CardRank, Int>()
+                hand.getCardsInHand().forEach { card->
+                    rankMap[card.rank] = rankMap.getOrDefault(card.rank, 0) + 1
+                }
+                val pairRank = rankMap.filter {
+                    it.value >= 2 && it.key != CardRank.TWO
+                }.keys.toList().sorted()
+
+                if (pairRank.size == 5 && pairRank[4].ordinal - pairRank[0].ordinal == 4) {
+                    result.add(hand.owner)
+                }
+
+                if (pairRank.size == 6) {
+                    if (pairRank[4].ordinal - pairRank[0].ordinal == 4 ||
+                        pairRank[5].ordinal - pairRank[1].ordinal == 4
+                    ) {
+                        result.add(hand.owner)
+                    }
+                }
+            }
+        }
+
+        // Straight with length = 12
+        run {
+            hands.forEach { hand->
+                val rankSet = mutableSetOf<CardRank>()
+                hand.getCardsInHand().forEach { card->
+                    rankSet.add(card.rank)
+                }
+                if (rankSet.size >= 12) {
+                    result.add(hand.owner)
+                }
+            }
+        }
     }
-}
-
-fun main() {
-    val game = Game(players = listOf(
-        Player("Kha"),
-        Player("player2"),
-        Player("player3"),
-        Player("player4"),
-    ))
-
-    game.devSetupGame()
-    game.startNewGame()
-
-    val hand1 = game.getHand(0)
-    val hand2 = game.getHand(1)
-    val hand3 = game.getHand(2)
-    val hand4 = game.getHand(3)
-
-    hand1.addCardToCombination(0)
-    game.processTurn(hand1.pushTurnToRound(TurnAction.PLAY))
-
-    hand2.addCardToCombination(0)
-    game.processTurn(hand2.pushTurnToRound(TurnAction.PLAY))
-
-    game.processTurn(hand3.pushTurnToRound(TurnAction.SKIP))
-
-    game.processTurn(hand4.pushTurnToRound(TurnAction.SKIP))
-
-    game.processTurn(hand1.pushTurnToRound(TurnAction.SKIP))
-
-    hand3.addCardToCombination(2)
-    hand3.addCardToCombination(0)
-    hand3.addCardToCombination(1)
-    game.processTurn(hand3.pushTurnToRound(TurnAction.PLAY))
-
-    game.processTurn(hand4.pushTurnToRound(TurnAction.SKIP))
-
-    game.processTurn(hand1.pushTurnToRound(TurnAction.SKIP))
-
-    hand4.addCardToCombination(1)
-    game.processTurn(hand4.pushTurnToRound(TurnAction.PLAY))
-
-    hand1.addCardToCombination(0)
-    game.processTurn(hand1.pushTurnToRound(TurnAction.PLAY))
 }

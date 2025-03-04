@@ -20,6 +20,9 @@ class Hand(val owner: Player) {
     fun sortCardsInHand() {
         cards.sort()
     }
+    fun getCardsInHand(): List<Card> {
+        return cards.toList()
+    }
     fun addCardToCombination(index: Int) {
         if (index < 0 || index >= cards.size) {
             throw IllegalArgumentException("Index out of hand bounds.")

@@ -211,7 +211,7 @@ class Game(players: List<Player>) {
                 hand.getCardsInHand().forEach { card->
                     rankSet.add(card.rank)
                 }
-                if (rankSet.size >= 12) {
+                if (rankSet.size == 13 || (rankSet.size == 12 && !rankSet.contains(CardRank.TWO))) {
                     result.add(hand.owner)
                 }
             }

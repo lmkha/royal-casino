@@ -9,16 +9,20 @@ import com.example.royalcasino.domain.model.card.suit.CardSuit
 import com.example.royalcasino.domain.model.hand.Hand
 import com.example.royalcasino.domain.model.player.Player
 import com.example.royalcasino.domain.model.round.Round
-import com.example.royalcasino.domain.model.turn.Turn
 
 class Game(players: List<Player>) {
     private var isFirstGame: Boolean = true
     private lateinit var deck: Deck
     private var hands: MutableList<Hand> = mutableListOf()
-    private var currentRound: Round? = null
+    var currentRound: Round? = null
+        private set
     private var handWonPreviousRound: Hand
     private var result: MutableList<Player> = mutableListOf()
-
+    private var checkCount = 0
+    val isOver: Boolean
+        get() {
+            return checkCount == 2
+        }
     init {
         players.forEach { player ->
             hands.add(Hand(player))
@@ -40,27 +44,8 @@ class Game(players: List<Player>) {
         }
     }
 
-    fun devSetupGame() {
-        hands[0].receiveCards(listOf(
-            Card(CardRank.SIX, CardSuit.CLUB),
-            Card(CardRank.TWO, CardSuit.SPADE),
-        ))
-        hands[1].receiveCards(listOf(
-            Card(CardRank.ACE, CardSuit.DIAMOND),
-        ))
-        hands[2].receiveCards(listOf(
-            Card(CardRank.SIX, CardSuit.DIAMOND),
-            Card(CardRank.FIVE, CardSuit.HEART),
-            Card(CardRank.SEVEN, CardSuit.CLUB),
-        ))
-        hands[3].receiveCards(listOf(
-            Card(CardRank.NINE, CardSuit.HEART),
-            Card(CardRank.EIGHT, CardSuit.SPADE),
-        ))
-        hands.forEach { it.sortCardsInHand() }
-    }
-
     fun startNewGame() {
+        checkAndHandleAutoWin()
         startNewRound()
     }
 
@@ -70,6 +55,7 @@ class Game(players: List<Player>) {
             startHand = handWonPreviousRound,
             onRoundEnd = { wonHand ->
                 handWonPreviousRound = wonHand
+                checkCount++
                 startNewRound()
             },
             onHandFinished = { handFinished ->
@@ -80,10 +66,6 @@ class Game(players: List<Player>) {
 
     fun getHand(handIndex: Int): Hand {
         return hands[handIndex]
-    }
-
-    fun processTurn(turn: Turn) {
-        currentRound?.processTurn(turn)
     }
 
     private fun handleHandFinished(hand: Hand) {
@@ -109,7 +91,7 @@ class Game(players: List<Player>) {
         }
     }
 
-    fun checkAndHandleAutoWin() {
+    private fun checkAndHandleAutoWin() {
         // Make sure that cards in hand were sorted
         /*
         If this is the first game:

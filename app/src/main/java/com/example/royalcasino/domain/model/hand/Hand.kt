@@ -9,7 +9,8 @@ import com.example.royalcasino.domain.model.turn.TurnAction
 
 class Hand(val owner: Player) {
     private var cards: MutableList<Card> = mutableListOf()
-    private var cardCombination: CardCombination = CardCombination()
+    var cardCombination: CardCombination = CardCombination()
+        private set
     val numberOfRemainingCards: Int
         get() = cards.size
 

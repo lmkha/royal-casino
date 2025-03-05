@@ -1,7 +1,7 @@
 package com.example.royalcasino.domain.model.player
 
-class Player(val name: String) {
+open class Player(val name: String, val isHuman: Boolean = true) {
     override fun toString(): String {
-        return "[Player]: {name: $name}"
+        return "[${if (isHuman) "Human" else "Bot"} Player]: {name: $name}"
     }
 }

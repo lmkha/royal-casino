@@ -33,17 +33,6 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
         hasUpdate = true
     }
 
-    fun canFormCombinationType(card: Card, targetType: CardCombinationType): Boolean {
-        val tempCards = this.cards.toMutableList()
-        tempCards.add(card)
-        return determineType(tempCards) == targetType
-    }
-
-    fun removeCard(card: Card) {
-        cards.remove(card)
-        hasUpdate = true
-    }
-
     fun clear() {
         cards.clear()
     }
@@ -115,6 +104,55 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
 
     override fun compareTo(other: CardCombination): Int {
         return CardCombinationComparator.compare(this, other)
+    }
+
+    fun canDefeat(other: CardCombination?) : Boolean {
+        val typeOfOther = other?.type
+        if (typeOfOther == null || typeOfOther == CardCombinationType.NO_COMBINATION) return false
+
+        when (this.type) {
+            CardCombinationType.SINGLE,
+            CardCombinationType.PAIR,
+            CardCombinationType.THREE_OF_A_KIND -> { return type == typeOfOther && this > other }
+            CardCombinationType.STRAIGHT -> {
+                return type == typeOfOther &&
+                        size == other.size &&
+                        this.getCard(size-1) > other.getCard(size-1)
+            }
+            CardCombinationType.FOUR_OF_A_KIND -> {
+                if (typeOfOther == CardCombinationType.SINGLE &&
+                    other.getCard(0).rank == CardRank.TWO
+                ) return true
+                if (typeOfOther == CardCombinationType.PAIR &&
+                    other.getCard(0).rank == CardRank.TWO
+                ) return true
+                if (typeOfOther == CardCombinationType.CONSECUTIVE_PAIRS &&
+                    other.size == 6
+                ) return true
+                if (type == typeOfOther && this > other) return true
+           }
+            CardCombinationType.CONSECUTIVE_PAIRS -> {
+                // both 3 consecutive pairs and 4 consecutive pairs are able to "cut the pig"
+                if (typeOfOther == CardCombinationType.SINGLE &&
+                    other.getCard(0).rank == CardRank.TWO
+                ) return true
+                // 4 consecutive pairs is able to "cut 2 pigs"
+                if (typeOfOther == CardCombinationType.PAIR &&
+                    other.getCard(0).rank == CardRank.TWO &&
+                    size == 8
+                ) return true
+                // 4 consecutive pairs is able to "cut" FOUR_OF_A_KIND"
+                if (typeOfOther == CardCombinationType.FOUR_OF_A_KIND &&
+                    size == 8
+                ) return true
+                // Compare between consecutive pairs
+                if (typeOfOther == CardCombinationType.CONSECUTIVE_PAIRS &&
+                    this > other
+                ) return true
+            }
+            else -> { return false }
+        }
+        return false
     }
 
     fun showCardsInCombination() {

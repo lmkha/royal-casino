@@ -16,7 +16,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             RoyalCasinoTheme {
                 MainScreen()
-//                DevScreen()
             }
         }
     }

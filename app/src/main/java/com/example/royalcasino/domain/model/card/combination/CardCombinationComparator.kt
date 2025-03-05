@@ -74,7 +74,7 @@ class StraightCombinationComparator {
             if (sizeA == 0 || sizeB == 0 || sizeA != sizeB) return 0
             val sortedCardsA: List<Card> = a.getAllCards().sortedBy { it.rank.ordinal }
             val sortedCardsB: List<Card> = b.getAllCards().sortedBy { it.rank.ordinal }
-            return sortedCardsA[sizeA - 1].compareTo(sortedCardsB[sizeB - 1])
+            return sortedCardsA.last().compareTo(sortedCardsB.last())
         }
     }
 }

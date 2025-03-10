@@ -60,6 +60,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.hilt.android)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$2.8.7")
     kapt(libs.hilt.android.compiler)
 }
 

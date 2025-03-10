@@ -1,5 +1,6 @@
 package com.example.royalcasino.domain.model.round
 
+import com.example.royalcasino.domain.bot.Bot
 import com.example.royalcasino.domain.model.hand.Hand
 import com.example.royalcasino.domain.model.turn.Turn
 import com.example.royalcasino.domain.model.turn.TurnAction
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 class Round(
     private val hands: List<Hand>,
     startHand: Hand,
+    private val bot: Bot,
     private val onRoundEnd: (wonHand: Hand) -> Unit = {},
     private val onHandFinished: (hand: Hand) -> Unit = {}
 ) {
@@ -31,7 +33,7 @@ class Round(
     }
 
     private fun makeDecisionForHand(turn: Turn, accept: Boolean) {
-        hands[followingHandIndexes[currentIndex]].makeTurn(turn = turn, roundAccept = accept)
+        getCurrentHand().applyTurnDecision(turn = turn, roundAccept = accept)
     }
 
     private fun handlePlayTurn(turn: Turn) {
@@ -73,7 +75,6 @@ class Round(
     }
 
     fun processTurn(turn: Turn) {
-        println("Processing turn of ${turn.owner}")
         turnJob?.cancel()
         turnJob = null
 
@@ -127,12 +128,11 @@ class Round(
         turnJob = CoroutineScope(Dispatchers.Default).launch {
             if (currentHand.owner.isHuman) {
                 delay(timeLimitPerTurn)
-                processTurn(currentHand.pushTurnToRound(TurnAction.SKIP))
+                processTurn(currentHand.submitTurn(TurnAction.SKIP))
             } else {
                 delay(1000L)
-//                val botTurn = currentHand.getBOTurn
-//                processTurn(botTurn)
-                processTurn(currentHand.pushTurnToRound(TurnAction.SKIP))
+                val botTurn: Turn = bot.takeHand(currentHand).makeTurn(currentTurn)
+                processTurn(botTurn)
             }
         }
     }

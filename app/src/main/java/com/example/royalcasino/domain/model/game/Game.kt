@@ -1,5 +1,7 @@
 package com.example.royalcasino.domain.model.game
 
+import com.example.royalcasino.domain.bot.Bot
+import com.example.royalcasino.domain.bot.BotLevel1
 import com.example.royalcasino.domain.model.Deck
 import com.example.royalcasino.domain.model.card.Card
 import com.example.royalcasino.domain.model.card.combination.CardCombination
@@ -14,20 +16,19 @@ class Game(players: List<Player>) {
     private var isFirstGame: Boolean = true
     private lateinit var deck: Deck
     private var hands: MutableList<Hand> = mutableListOf()
+    private lateinit var bot: Bot
     var currentRound: Round? = null
         private set
-    private var handWonPreviousRound: Hand
+    private lateinit var handWonPreviousRound: Hand
     private var result: MutableList<Player> = mutableListOf()
-    private var checkCount = 0
+    val yourHand: Hand
+        get() = hands[0]
     val isOver: Boolean
         get() {
-            return checkCount == 2
+            return result.size == hands.size
         }
     init {
-        players.forEach { player ->
-            hands.add(Hand(player))
-        }
-        handWonPreviousRound = hands[0]
+        players.forEach { hands.add(Hand(it)) }
     }
 
     fun setupNewGame() {
@@ -42,6 +43,8 @@ class Game(players: List<Player>) {
                 cardsOfDeck.removeAll(drawnCards)
             }
         }
+        bot = BotLevel1()
+        handWonPreviousRound = hands.find { it.getCardsInHand().contains(Card(CardRank.THREE, CardSuit.SPADE)) }!!
     }
 
     fun startNewGame() {
@@ -53,9 +56,9 @@ class Game(players: List<Player>) {
         currentRound = Round(
             hands = hands.filter { it.numberOfRemainingCards > 0 },
             startHand = handWonPreviousRound,
+            bot = bot,
             onRoundEnd = { wonHand ->
                 handWonPreviousRound = wonHand
-                checkCount++
                 startNewRound()
             },
             onHandFinished = { handFinished ->
@@ -100,27 +103,26 @@ class Game(players: List<Player>) {
         */
         if (isFirstGame) {
             // Cards in hand were sorted, so if all 4 beginning cards have Rank.Three, then it's auto win
-            run {
-                val firstGameHaveRankThreeX4Hand = hands.find { hand->
-                    hand.getCardsInHand().subList(0, 4).all { it.rank == CardRank.THREE }
-                }
-                if (firstGameHaveRankThreeX4Hand != null) {
-                    result.add(firstGameHaveRankThreeX4Hand.owner)
-                }
+            val firstGameHaveRankThreeX4Hand = hands.find { hand->
+                hand.getCardsInHand().subList(0, 4).all { it.rank == CardRank.THREE }
+            }
+            if (firstGameHaveRankThreeX4Hand != null) {
+                result.add(firstGameHaveRankThreeX4Hand.owner)
             }
 
             // Consecutive pairs include Card(CardRank.THREE, CardSuit.SPADE)
-            run {
-                val firstGameHaveConsecutivePairIncludeSpadeThree = hands.find { hand->
-                    val sixBeginningCardsOfHand = hand.getCardsInHand().subList(0, 6)
-                    sixBeginningCardsOfHand.contains(Card(CardRank.THREE, CardSuit.SPADE)) &&
-                            CardCombination(sixBeginningCardsOfHand).type == CardCombinationType.CONSECUTIVE_PAIRS
-                }
-                if (firstGameHaveConsecutivePairIncludeSpadeThree != null) {
-                    result.add(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
-                }
+            val firstGameHaveConsecutivePairIncludeSpadeThree = hands.find { hand->
+                val sixBeginningCardsOfHand = hand.getCardsInHand().subList(0, 6)
+                sixBeginningCardsOfHand.contains(Card(CardRank.THREE, CardSuit.SPADE)) &&
+                        CardCombination(sixBeginningCardsOfHand).type == CardCombinationType.CONSECUTIVE_PAIRS
+            }
+            if (firstGameHaveConsecutivePairIncludeSpadeThree != null &&
+                !result.contains(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
+            ) {
+                result.add(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
             }
         }
+
         /*
         Not the first game
            + Three of a kind x 4
@@ -129,73 +131,67 @@ class Game(players: List<Player>) {
            + Four of a kind(CardRank.TWO)
            + Straight with length = 12
         */
-
         // Three of a kind x 4
-        run {
-            hands.forEach { hand->
-                val rankMap = mutableMapOf<CardRank, Int>()
-                var threeOfAKindCount = 0
-                hand.getCardsInHand().map { it.rank }.forEach { rank->
-                    rankMap[rank] = rankMap.getOrDefault(rank, 0) + 1
+        for (hand in hands) {
+            if (result.contains(hand.owner)) continue
+            val rankMap = mutableMapOf<CardRank, Int>()
+            var threeOfAKindCount = 0
+            hand.getCardsInHand().map { it.rank }.forEach { rank->
+                rankMap[rank] = rankMap.getOrDefault(rank, 0) + 1
+            }
+            if (rankMap.size == 4) result.add(hand.owner)
+            if (rankMap.size == 5) {
+                rankMap.forEach { (_, count) ->
+                    if (count >= 3) threeOfAKindCount++
                 }
-                if (rankMap.size == 4) result.add(hand.owner)
-                if (rankMap.size == 5) {
-                    rankMap.forEach { (_, count) ->
-                        if (count >= 3) threeOfAKindCount++
-                    }
-                    if (threeOfAKindCount == 4) result.add(hand.owner)
-                }
+
+                if (threeOfAKindCount == 4) result.add(hand.owner)
             }
         }
 
         // Pair x6
-        run {
-            hands.forEach { hand->
-                val rankSet = mutableSetOf<CardRank>()
-                hand.getCardsInHand().forEach { card: Card ->
-                    rankSet.add(card.rank)
-                }
-                if (rankSet.size <= 7) {
-                    result.add(hand.owner)
-                }
+        for (hand in hands) {
+            if (result.contains(hand.owner)) continue
+            val rankSet = mutableSetOf<CardRank>()
+            hand.getCardsInHand().forEach { card: Card ->
+                rankSet.add(card.rank)
             }
+            if (rankSet.size <= 7) result.add(hand.owner)
         }
 
         // 5 consecutive pairs
-        run {
-            hands.forEach { hand->
-                val rankMap = mutableMapOf<CardRank, Int>()
-                hand.getCardsInHand().forEach { card->
-                    rankMap[card.rank] = rankMap.getOrDefault(card.rank, 0) + 1
-                }
-                val pairRank = rankMap.filter {
-                    it.value >= 2 && it.key != CardRank.TWO
-                }.keys.toList().sorted()
+        for (hand in hands) {
+            if (result.contains(hand.owner)) continue
+            val rankMap = mutableMapOf<CardRank, Int>()
+            hand.getCardsInHand().forEach { card->
+                rankMap[card.rank] = rankMap.getOrDefault(card.rank, 0) + 1
+            }
+            val pairRank = rankMap.filter {
+                it.value >= 2 && it.key != CardRank.TWO
+            }.keys.toList().sorted()
 
-                if (pairRank.size == 5 && pairRank[4].ordinal - pairRank[0].ordinal == 4) {
+            if (pairRank.size == 5 && pairRank[4].ordinal - pairRank[0].ordinal == 4) {
+                result.add(hand.owner)
+            }
+
+            if (pairRank.size == 6) {
+                if (pairRank[4].ordinal - pairRank[0].ordinal == 4 ||
+                    pairRank[5].ordinal - pairRank[1].ordinal == 4
+                ) {
                     result.add(hand.owner)
-                }
-
-                if (pairRank.size == 6) {
-                    if (pairRank[4].ordinal - pairRank[0].ordinal == 4 ||
-                        pairRank[5].ordinal - pairRank[1].ordinal == 4
-                    ) {
-                        result.add(hand.owner)
-                    }
                 }
             }
         }
 
         // Straight with length = 12
-        run {
-            hands.forEach { hand->
-                val rankSet = mutableSetOf<CardRank>()
-                hand.getCardsInHand().forEach { card->
-                    rankSet.add(card.rank)
-                }
-                if (rankSet.size == 13 || (rankSet.size == 12 && !rankSet.contains(CardRank.TWO))) {
-                    result.add(hand.owner)
-                }
+        for (hand in hands) {
+            if (result.contains(hand.owner)) continue
+            val rankSet = mutableSetOf<CardRank>()
+            hand.getCardsInHand().forEach { card->
+                rankSet.add(card.rank)
+            }
+            if (rankSet.size == 13 || (rankSet.size == 12 && !rankSet.contains(CardRank.TWO))) {
+                result.add(hand.owner)
             }
         }
     }

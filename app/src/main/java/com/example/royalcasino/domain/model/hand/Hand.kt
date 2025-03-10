@@ -9,8 +9,7 @@ import com.example.royalcasino.domain.model.turn.TurnAction
 
 class Hand(val owner: Player) {
     private var cards: MutableList<Card> = mutableListOf()
-    var cardCombination: CardCombination = CardCombination()
-        private set
+    private var cardCombination: CardCombination = CardCombination()
     val numberOfRemainingCards: Int
         get() = cards.size
 
@@ -30,22 +29,24 @@ class Hand(val owner: Player) {
         }
         cardCombination.addCard(cards[index])
     }
-    private fun removeAllCardFromCombination() {
+    fun removeAllCardFromCombination() {
         cardCombination.clear()
     }
-    fun showAllCardsInHand() {
+    private fun showAllCardsInHand() {
         cards.forEach { card->
             print("$card ")
         }
         println()
     }
-    fun makeTurn(turn: Turn, roundAccept: Boolean) {
+    fun applyTurnDecision(turn: Turn, roundAccept: Boolean) {
+        println("Turn of $owner (${if (turn.turnAction == TurnAction.PLAY) "play turn" else "skip turn"}) was ${if (roundAccept)"Accepted" else "Rejected"}")
+        cardCombination.showCardsInCombination()
         if (turn.turnAction == TurnAction.PLAY && roundAccept) {
             cards.removeAll(cardCombination.getAllCards())
         }
         removeAllCardFromCombination()
     }
-    fun pushTurnToRound(turnAction: TurnAction): Turn {
+    fun submitTurn(turnAction: TurnAction): Turn {
         if (turnAction == TurnAction.PLAY && cardCombination.type == CardCombinationType.NO_COMBINATION) {
             throw IllegalStateException("This cards combination is not valid")
         }

@@ -2,7 +2,6 @@ package com.example.royalcasino.dev
 
 import com.example.royalcasino.domain.model.game.Game
 import com.example.royalcasino.domain.model.player.Player
-import com.example.royalcasino.domain.model.turn.TurnAction
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
@@ -19,14 +18,10 @@ fun main(): Unit = runBlocking {
     println("Game started!")
 
     val myHand = game.getHand(0)
-//    myHand.addCardToCombination(6)
-//    myHand.addCardToCombination(7)
-//    myHand.addCardToCombination(8)
     myHand.addCardToCombination(0)
     myHand.addCardToCombination(1)
     myHand.addCardToCombination(4)
     delay(2000L)
-    game.currentRound?.processTurn(myHand.submitTurn(TurnAction.PLAY))
 
     while (!game.isOver) {
         delay(50L)

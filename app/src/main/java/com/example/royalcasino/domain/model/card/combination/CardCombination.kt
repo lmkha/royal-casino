@@ -37,6 +37,10 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
         cards.clear()
     }
 
+    fun removeCard(card: Card) {
+        cards.remove(card)
+    }
+
     private fun determineType(cards: List<Card>): CardCombinationType {
         if (cards.isEmpty()) return CardCombinationType.NO_COMBINATION
 
@@ -164,5 +168,13 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
 
     fun deepCopy(): CardCombination {
         return CardCombination(this.cards.map { it.copy() })
+    }
+
+    override fun toString(): String {
+        var result = ""
+        for (card in cards) {
+            result += "${card.rank} ${card.suit} - "
+        }
+        return result
     }
 }

@@ -11,18 +11,19 @@ import com.example.royalcasino.domain.model.card.suit.CardSuit
 import com.example.royalcasino.domain.model.hand.Hand
 import com.example.royalcasino.domain.model.player.Player
 import com.example.royalcasino.domain.model.round.Round
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class Game(players: List<Player>) {
     private var isFirstGame: Boolean = true
     private lateinit var deck: Deck
     private var hands: MutableList<Hand> = mutableListOf()
     private lateinit var bot: Bot
-    var currentRound: Round? = null
-        private set
+    private val _currentRound: MutableStateFlow<Round?> = MutableStateFlow(null)
+    val currentRound: StateFlow<Round?> = _currentRound.asStateFlow()
     private lateinit var handWonPreviousRound: Hand
     private var result: MutableList<Player> = mutableListOf()
-    val yourHand: Hand
-        get() = hands[0]
     val isOver: Boolean
         get() {
             return result.size == hands.size
@@ -53,7 +54,7 @@ class Game(players: List<Player>) {
     }
 
     private fun startNewRound() {
-        currentRound = Round(
+        _currentRound.value = Round(
             hands = hands.filter { it.numberOfRemainingCards > 0 },
             startHand = handWonPreviousRound,
             bot = bot,

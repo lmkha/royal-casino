@@ -1,6 +1,5 @@
 package com.example.royalcasino.domain.model.hand
 
-import android.util.Log
 import com.example.royalcasino.domain.model.card.Card
 import com.example.royalcasino.domain.model.card.combination.CardCombination
 import com.example.royalcasino.domain.model.card.combination.CardCombinationType
@@ -13,8 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class Hand(val owner: Player) {
     private val _cards: MutableStateFlow<List<Card>> = MutableStateFlow(emptyList())
+    var cardCombination: CardCombination = CardCombination()
+        private set
     val cards: StateFlow<List<Card>> = _cards.asStateFlow()
-    private var cardCombination: CardCombination = CardCombination()
     val numberOfRemainingCards: Int
         get() = _cards.value.size
 
@@ -27,27 +27,24 @@ class Hand(val owner: Player) {
     fun getCardsInHand(): List<Card> {
         return _cards.value.toList()
     }
-    fun addCardToCombination(index: Int) {
-        if (index < 0 || index >= _cards.value.size) {
-            throw IllegalArgumentException("Index out of hand bounds.")
+    fun addCardToCombinationByIndex(index: Int) {
+        _cards.value.getOrNull(index)?.let { card ->
+            cardCombination.addCard(card)
         }
-        if (!cardCombination.getAllCards().contains(_cards.value[index])) {
-            cardCombination.addCard(_cards.value[index])
-        } else {
-            cardCombination.removeCard(_cards.value[index])
+    }
+    fun removeCardFromCombinationByIndex(index: Int) {
+        _cards.value.getOrNull(index)?.let { card ->
+            cardCombination.removeCard(card)
         }
     }
     fun removeAllCardFromCombination() {
         cardCombination.clear()
     }
     fun applyTurnDecision(turn: Turn, roundAccept: Boolean) {
-        Log.i("CHECK_VAR", "Before apply")
-        cardCombination.showCardsInCombination()
         if (turn.turnAction == TurnAction.PLAY && roundAccept) {
             _cards.value = _cards.value.filterNot { it in cardCombination.getAllCards() }
         }
         removeAllCardFromCombination()
-        Log.i("CHECK_VAR", "After apply")
     }
     fun submitTurn(turnAction: TurnAction): Turn {
         if (turnAction == TurnAction.PLAY && cardCombination.type == CardCombinationType.NO_COMBINATION) {

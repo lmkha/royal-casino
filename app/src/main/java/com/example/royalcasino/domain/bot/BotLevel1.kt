@@ -2,22 +2,12 @@ package com.example.royalcasino.domain.bot
 
 import com.example.royalcasino.domain.model.card.combination.CardCombinationType
 import com.example.royalcasino.domain.model.card.rank.CardRank
-import com.example.royalcasino.domain.model.hand.Hand
 import com.example.royalcasino.domain.model.turn.Turn
 import com.example.royalcasino.domain.model.turn.TurnAction
 
 // Bot level1 always decide to play whenever its hand is able to play
-class BotLevel1 : Bot {
-    private lateinit var hand: Hand
-    override fun takeHand(hand: Hand) : Bot {
-        this.hand = hand
-        return this
-    }
-    override fun makeTurn(opponentTurn: Turn?) : Turn {
-        if (opponentTurn == null) return startNewRoundWithTurn()
-        return followTurn(opponentTurn)
-    }
-    private fun followTurn(opponentTurn: Turn): Turn {
+class BotLevel1 : Bot() {
+    override fun followTurn(opponentTurn: Turn): Turn {
         val opponentCombination = opponentTurn.combination ?:
             throw IllegalArgumentException("Combination of current's round cannot null.")
 
@@ -26,7 +16,7 @@ class BotLevel1 : Bot {
                 val cards = hand.getCardsInHand()
                 cards.forEachIndexed { index, card ->
                     if (card > opponentCombination.getCard(0)) {
-                        hand.addCardToCombination(index)
+                        hand.addCardToCombinationByIndex(index)
                         return hand.submitTurn(TurnAction.PLAY)
                     }
                 }
@@ -37,8 +27,8 @@ class BotLevel1 : Bot {
                     if (cardsInHand[i].rank == cardsInHand[i - 1].rank &&
                         cardsInHand[i] > opponentCombination.getCard(1)
                     ) {
-                        hand.addCardToCombination(i - 1)
-                        hand.addCardToCombination(i)
+                        hand.addCardToCombinationByIndex(i - 1)
+                        hand.addCardToCombinationByIndex(i)
                         return hand.submitTurn(TurnAction.PLAY)
                     }
                 }
@@ -50,9 +40,9 @@ class BotLevel1 : Bot {
                         cardsInHand[i].rank == cardsInHand[i - 2].rank &&
                         cardsInHand[i] > opponentCombination.getCard(0)
                     ) {
-                        hand.addCardToCombination(i - 2)
-                        hand.addCardToCombination(i - 1)
-                        hand.addCardToCombination(i)
+                        hand.addCardToCombinationByIndex(i - 2)
+                        hand.addCardToCombinationByIndex(i - 1)
+                        hand.addCardToCombinationByIndex(i)
                         return hand.submitTurn(TurnAction.PLAY)
                     }
                 }
@@ -68,10 +58,10 @@ class BotLevel1 : Bot {
                         cardsInHand[i].rank == cardsInHand[i - 3].rank &&
                         cardsInHand[i] > opponentCombination.getCard(0)
                     ) {
-                        hand.addCardToCombination(i - 3)
-                        hand.addCardToCombination(i - 2)
-                        hand.addCardToCombination(i - 1)
-                        hand.addCardToCombination(i)
+                        hand.addCardToCombinationByIndex(i - 3)
+                        hand.addCardToCombinationByIndex(i - 2)
+                        hand.addCardToCombinationByIndex(i - 1)
+                        hand.addCardToCombinationByIndex(i)
                         return hand.submitTurn(TurnAction.PLAY)
                     }
                 }
@@ -91,7 +81,7 @@ class BotLevel1 : Bot {
                         cardsInHand[i].rank.ordinal == cardsInHand[i-7].rank.ordinal + 3
                     ) {
                         for (j in i-7..i) {
-                            hand.addCardToCombination(i)
+                            hand.addCardToCombinationByIndex(j)
                         }
                         return hand.submitTurn(TurnAction.PLAY)
                     }
@@ -113,7 +103,7 @@ class BotLevel1 : Bot {
 
                     if (straightLengthArr[i] < targetLength) continue
 
-                    hand.addCardToCombination(i)
+                    hand.addCardToCombinationByIndex(i)
                     var previousCardRank = cardsInHand[i].rank
                     var k = i + 1
 
@@ -121,11 +111,11 @@ class BotLevel1 : Bot {
                         if (cardsInHand[k].rank.ordinal == previousCardRank.ordinal + 1) {
                             if (cardsInHand[k].rank.ordinal == cardsInHand[i].rank.ordinal + targetLength - 1) {
                                 if (cardsInHand[k] > opponentCombination.getCard(targetLength - 1)) {
-                                    hand.addCardToCombination(k)
+                                    hand.addCardToCombinationByIndex(k)
                                     break
                                 }
                             } else {
-                                hand.addCardToCombination(k)
+                                hand.addCardToCombinationByIndex(k)
                                 previousCardRank = cardsInHand[k].rank
                             }
                         }
@@ -178,51 +168,8 @@ class BotLevel1 : Bot {
 
         return hand.submitTurn(TurnAction.SKIP)
     }
-    private fun startNewRoundWithTurn() : Turn {
-        hand.addCardToCombination(0)
+    override fun startNewRoundWithTurn() : Turn {
+        hand.addCardToCombinationByIndex(0)
         return hand.submitTurn(TurnAction.PLAY)
-    }
-    private fun calculateStraightValueArray() : IntArray {
-        val cardsInHand = hand.getCardsInHand()
-        val straightLengthArr = IntArray(cardsInHand.size) { 0 }
-
-        straightLengthArr[straightLengthArr.size - 1] = if (cardsInHand.last().rank != CardRank.TWO) 1 else 0
-
-        for (i in cardsInHand.size - 2 downTo 0) {
-            if (cardsInHand[i].rank.ordinal == cardsInHand[i + 1].rank.ordinal - 1 && cardsInHand[i + 1].rank != CardRank.TWO) {
-                straightLengthArr[i] = straightLengthArr[i + 1] + 1
-            } else if (cardsInHand[i].rank == cardsInHand[i + 1].rank) {
-                straightLengthArr[i] = straightLengthArr[i + 1]
-            } else {
-                straightLengthArr[i] = 1
-            }
-        }
-
-        return straightLengthArr
-    }
-    private fun calculatePairValueArray() : IntArray {
-        val cardsInHand = hand.getCardsInHand()
-        val pairValueArr = IntArray(cardsInHand.size) { 0 }
-        if (cardsInHand[cardsInHand.size - 1].rank != CardRank.TWO &&
-            cardsInHand[cardsInHand.size - 1].rank == cardsInHand[cardsInHand.size - 2].rank
-        ) {
-            pairValueArr[pairValueArr.size - 1] = 1
-        }
-
-        for (i in cardsInHand.size - 2 downTo 1) {
-            if (cardsInHand[i].rank == cardsInHand[i + 1].rank) {
-                pairValueArr[i] = pairValueArr[i + 1]
-            } else if (cardsInHand[i].rank == cardsInHand[i - 1].rank) {
-                if (cardsInHand[i].rank.ordinal == cardsInHand[i + 1].rank.ordinal - 1) {
-                    pairValueArr[i] = pairValueArr[i + 1] + 1
-                } else {
-                    pairValueArr[i] = 1
-                }
-            } else {
-                pairValueArr[i] = 0
-            }
-        }
-
-        return pairValueArr
     }
 }

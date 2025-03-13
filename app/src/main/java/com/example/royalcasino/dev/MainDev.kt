@@ -18,9 +18,9 @@ fun main(): Unit = runBlocking {
     println("Game started!")
 
     val myHand = game.getHand(0)
-    myHand.addCardToCombination(0)
-    myHand.addCardToCombination(1)
-    myHand.addCardToCombination(4)
+    myHand.addCardToCombinationByIndex(0)
+    myHand.addCardToCombinationByIndex(1)
+    myHand.addCardToCombinationByIndex(4)
     delay(2000L)
 
     while (!game.isOver) {

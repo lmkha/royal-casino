@@ -35,10 +35,12 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
 
     fun clear() {
         cards.clear()
+        hasUpdate = true
     }
 
     fun removeCard(card: Card) {
         cards.remove(card)
+        hasUpdate = true
     }
 
     private fun determineType(cards: List<Card>): CardCombinationType {
@@ -113,6 +115,7 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
     fun canDefeat(other: CardCombination?) : Boolean {
         val typeOfOther = other?.type
         if (typeOfOther == null || typeOfOther == CardCombinationType.NO_COMBINATION) return false
+        if (this.type == CardCombinationType.NO_COMBINATION) return false
 
         when (this.type) {
             CardCombinationType.SINGLE,
@@ -157,13 +160,6 @@ class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombinat
             else -> { return false }
         }
         return false
-    }
-
-    fun showCardsInCombination() {
-        cards.forEach { card: Card ->
-            print("$card ")
-        }
-        println()
     }
 
     fun deepCopy(): CardCombination {

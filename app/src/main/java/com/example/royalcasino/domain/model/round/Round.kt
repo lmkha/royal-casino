@@ -22,26 +22,29 @@ class Round(
     private val onRoundEnd: (wonHand: Hand) -> Unit = {},
     private val onHandFinished: (hand: Hand) -> Unit = {}
 ) {
-    private var followingHandIndexes: MutableList<Int> = hands.indices.toMutableList()
-    private var currentIndex: Int = hands.indexOf(startHand)
-    private var timeLimitPerTurn: Long = 15000L
-    private var turnJob: Job? = null
+    private var _followingHandIndexes: MutableList<Int> = hands.indices.toMutableList()
+    private var _currentIndex: Int = hands.indexOf(startHand)
+    private var _timeLimitPerTurn: Long = 15000L
+    private var _turnJob: Job? = null
     private val _currentTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _previousTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
-    private val _remainingTimeForTurn: MutableStateFlow<Long> = MutableStateFlow(timeLimitPerTurn)
-    private val _handIsMakingTurn: MutableStateFlow<Hand?> = MutableStateFlow(getCurrentHand())
+    private val _remainingTimeForTurn: MutableStateFlow<Long> = MutableStateFlow(_timeLimitPerTurn)
+    private val _numberOfRemainingCards: MutableStateFlow<List<Int>> = MutableStateFlow(emptyList())
+    private val _indexOfHandGoingToMakeTurn: MutableStateFlow<Int> = MutableStateFlow(0)
 
-    val handIsMakingTurn: StateFlow<Hand?> = _handIsMakingTurn.asStateFlow()
     val currentTurn: StateFlow<Turn?> = _currentTurn.asStateFlow()
     val previousTurn: StateFlow<Turn?> = _previousTurn.asStateFlow()
     val remainingTimeForTurn: StateFlow<Long> = _remainingTimeForTurn.asStateFlow()
+    val numberOfRemainingCards: StateFlow<List<Int>> = _numberOfRemainingCards.asStateFlow()
+    val indexOfHandGoingToMakeTurn: StateFlow<Int> = _indexOfHandGoingToMakeTurn.asStateFlow()
 
     init {
+        updateNumbersOfRemainingCard()
         nextTurn()
     }
 
     private fun getCurrentHand() : Hand {
-        return hands[followingHandIndexes[currentIndex]]
+        return hands[_followingHandIndexes[_currentIndex]]
     }
 
     private fun makeDecisionForHand(turn: Turn, accept: Boolean) {
@@ -66,12 +69,12 @@ class Round(
         val currentHand = getCurrentHand()
         if (currentHand.numberOfRemainingCards == 0) {
             onHandFinished(currentHand)
-            followingHandIndexes.removeAt(currentIndex)
-            if (currentIndex == followingHandIndexes.size) { currentIndex = 0 }
+            _followingHandIndexes.removeAt(_currentIndex)
+            if (_currentIndex == _followingHandIndexes.size) { _currentIndex = 0 }
             return
         }
 
-        currentIndex = (currentIndex + 1) % followingHandIndexes.size
+        _currentIndex = (_currentIndex + 1) % _followingHandIndexes.size
     }
 
     private fun handleSkipTurn(turn: Turn) {
@@ -80,23 +83,22 @@ class Round(
             throw IllegalStateException("The first turn of a round cannot be a SKIP turn.")
         }
         makeDecisionForHand(turn, true)
-        followingHandIndexes.removeAt(currentIndex)
-        if (currentIndex == followingHandIndexes.size) {
-            currentIndex = 0
+        _followingHandIndexes.removeAt(_currentIndex)
+        if (_currentIndex == _followingHandIndexes.size) {
+            _currentIndex = 0
         }
     }
 
     fun processTurn(turn: Turn) {
-        Log.i("CHECK_VAR", "Before process turn")
-        turnJob?.cancel()
-        turnJob = null
+        _turnJob?.cancel()
+        _turnJob = null
 
         if (hands.isEmpty()) {
             makeDecisionForHand(turn, false)
             throw NoSuchElementException("No hands available to play a turn.")
         }
 
-        if (currentIndex < 0 || currentIndex >= followingHandIndexes.size) {
+        if (_currentIndex < 0 || _currentIndex >= _followingHandIndexes.size) {
             makeDecisionForHand(turn, false)
             throw IndexOutOfBoundsException("Invalid current index.")
         }
@@ -113,7 +115,7 @@ class Round(
 
         // A hand had just finished and there is no hand follow theirs turn,
         // so the hand next to they have right to begin the new round.
-        if (followingHandIndexes.isEmpty()) {
+        if (_followingHandIndexes.isEmpty()) {
             for (i in hands.indices) {
                 if (hands[i].owner == _currentTurn.value?.owner) {
                     val indexOfHandBeginNextRound = (i + 1) % hands.size
@@ -126,23 +128,23 @@ class Round(
 
         // Only 2 hands in following list and 1 hand had just left(index was update by handleSkip), now only you still in this
         // -> You win and you have right to make the first turn of next round.
-        if (getCurrentHand().owner == _currentTurn.value?.owner && followingHandIndexes.size == 1) {
-            onRoundEnd(hands[followingHandIndexes.first()])
+        if (getCurrentHand().owner == _currentTurn.value?.owner && _followingHandIndexes.size == 1) {
+            onRoundEnd(hands[_followingHandIndexes.first()])
             return
         }
 
-        _handIsMakingTurn.value = getCurrentHand()
+        updateNumbersOfRemainingCard()
 
-        Log.i("CHECK_VAR", "After process turn")
         nextTurn()
     }
 
     private fun nextTurn() {
-        turnJob?.cancel()
+        _turnJob?.cancel()
         val currentHand = getCurrentHand()
+        updateIndexOfHandGoingToMakeTurn()
 
-        turnJob = CoroutineScope(Dispatchers.Default).launch {
-            _remainingTimeForTurn.value = timeLimitPerTurn
+        _turnJob = CoroutineScope(Dispatchers.Default).launch {
+            _remainingTimeForTurn.value = _timeLimitPerTurn
 
             val countDownJob = launch {
                 while (_remainingTimeForTurn.value > 0) {
@@ -152,7 +154,7 @@ class Round(
             }
 
             if (currentHand.owner.isHuman) {
-                delay(timeLimitPerTurn)
+                delay(_timeLimitPerTurn)
                 processTurn(currentHand.submitTurn(TurnAction.SKIP))
             } else {
                 val delayTime = Random.nextLong(1000L, 3001L)
@@ -163,5 +165,15 @@ class Round(
 
             countDownJob.cancel()
         }
+    }
+
+    private fun updateIndexOfHandGoingToMakeTurn() {
+        Log.i("CHECK_VAR", "Before update index: ${indexOfHandGoingToMakeTurn.value}")
+        _indexOfHandGoingToMakeTurn.value = _followingHandIndexes[_currentIndex]
+        Log.i("CHECK_VAR", "After update index: ${indexOfHandGoingToMakeTurn.value}")
+    }
+
+    private fun updateNumbersOfRemainingCard() {
+        _numberOfRemainingCards.value = hands.map { it.numberOfRemainingCards }.toList()
     }
 }

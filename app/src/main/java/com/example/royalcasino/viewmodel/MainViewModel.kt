@@ -3,6 +3,7 @@ package com.example.royalcasino.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.royalcasino.domain.model.card.ICardDrawable
+import com.example.royalcasino.domain.model.card.combination.CardCombinationType
 import com.example.royalcasino.domain.model.game.Game
 import com.example.royalcasino.domain.model.player.Player
 import com.example.royalcasino.domain.model.turn.Turn
@@ -31,33 +32,56 @@ class MainViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             _game.currentRound.collectLatest { currentRound ->
                 if (currentRound != null) {
+                    // Collect currentTurn
                     launch {
                         currentRound.currentTurn.collectLatest { turn ->
                             _uiState.update { it.copy(currentTurn = turn) }
                         }
                     }
 
+                    // Collect previousTurn
                     launch {
                         currentRound.previousTurn.collectLatest { turn ->
                             _uiState.update { it.copy(previousTurn = turn) }
                         }
                     }
 
+                    // Collect indexOfHandGoingToMakeTurn
                     launch {
-                        currentRound.handIsMakingTurn.collectLatest { hand ->
-                            _uiState.update { it.copy(isMyTurn = hand?.owner?.name == "Kha") }
+                        currentRound.indexOfHandGoingToMakeTurn.collectLatest { newIndex->
+                            _uiState.update { oldState->
+                                val cardStates = if (oldState.indexOfHandGoingToMakeTurn == 0) {
+                                    oldState.cardStates.map { CardState(card = it.card, selected = false) }
+                                } else oldState.cardStates
+
+                                oldState.copy(
+                                    indexOfHandGoingToMakeTurn = newIndex,
+                                    enableSkipTurn = newIndex == 0 && currentRound.currentTurn.value != null,
+                                    enablePlayTurn = if (newIndex == 0) isPlayTurnEnabled() else oldState.enablePlayTurn,
+                                    cardStates = cardStates,
+                                )
+                            }
                         }
                     }
 
+                    // Collect remainingTimeForTurn
                     launch {
                         currentRound.remainingTimeForTurn.collectLatest { time ->
                             _uiState.update { it.copy(remainingTimeForTurn = time) }
                         }
                     }
 
+                    // Collect numberOfRemainingCards
+                    launch {
+                        currentRound.numberOfRemainingCards.collectLatest { numbersOfRemainingCards->
+                            _uiState.update { it.copy( numberOfRemainingCards = numbersOfRemainingCards) }
+                        }
+                    }
+
+                    // Collect my cards in hand
                     launch {
                         _game.getHand(0).cards.collectLatest { cards ->
-                            val newCardStates = cards.map { CardState(it, false) }
+                            val newCardStates = cards.map { CardState(card = it, selected = false) }
                             _uiState.update {
                                 it.copy(cardStates = newCardStates)
                             }
@@ -78,14 +102,27 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     fun clickCard(index: Int) {
         val myHand = _game.getHand(0)
-        myHand.addCardToCombination(index)
+        if (_uiState.value.cardStates[index].selected == false) {
+            myHand.addCardToCombinationByIndex(index)
+        } else {
+            myHand.removeCardFromCombinationByIndex(index)
+        }
+
         val newCardStates = _uiState.value.cardStates.toMutableList()
         newCardStates[index] = CardState(newCardStates[index].card, !newCardStates[index].selected)
-        _uiState.update { it.copy(cardStates = newCardStates) }
+
+        val enablePlayTurn = isPlayTurnEnabled()
+
+        _uiState.update {
+            it.copy(
+                cardStates = newCardStates,
+                enablePlayTurn = enablePlayTurn,
+            )
+        }
     }
 
     fun playTurn() {
-        if (_uiState.value.isMyTurn) {
+        if (_uiState.value.indexOfHandGoingToMakeTurn == 0) {
             val myHand = _game.getHand(0)
             val turn = myHand.submitTurn(TurnAction.PLAY)
             _game.currentRound.value?.processTurn(turn)
@@ -93,23 +130,37 @@ class MainViewModel @Inject constructor() : ViewModel() {
     }
 
     fun skipTurn() {
-        if (_uiState.value.isMyTurn) {
+        if (_uiState.value.indexOfHandGoingToMakeTurn == 0) {
             _game.currentRound.value?.processTurn(
                 _game.getHand(0).submitTurn(TurnAction.SKIP)
             )
         }
     }
 
+    private fun isPlayTurnEnabled(): Boolean {
+        val currentTurnCombination = _game.currentRound.value?.currentTurn?.value?.combination
+        val myCombination = _game.getHand(0).cardCombination
+        var enablePlayTurn: Boolean = if (currentTurnCombination != null) {
+            myCombination.canDefeat(currentTurnCombination)
+        } else {
+            myCombination.type != CardCombinationType.NO_COMBINATION
+        }
+
+        return enablePlayTurn
+    }
 }
 
 data class UiState(
     val started: Boolean = false,
     val isOver: Boolean = false,
-    val isMyTurn: Boolean = false,
+    val indexOfHandGoingToMakeTurn: Int = -1,
     val cardStates: List<CardState> = emptyList(),
     val currentTurn: Turn? = null,
     val previousTurn: Turn? = null,
     val remainingTimeForTurn: Long = 0L,
+    val enablePlayTurn: Boolean = false,
+    val enableSkipTurn: Boolean = false,
+    val numberOfRemainingCards: List<Int> = listOf<Int>(0, 0, 0, 0)
 )
 
 data class CardState(

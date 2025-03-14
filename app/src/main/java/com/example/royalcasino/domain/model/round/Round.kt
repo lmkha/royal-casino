@@ -16,21 +16,22 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class Round(
-    private val hands: List<Hand>,
+    private val _hands: List<Hand>,
     startHand: Hand,
-    private val bot: Bot,
+    private val _bot: Bot,
     private val onTurnFinished: () -> Unit = {},
     private val onRoundEnd: (wonHand: Hand) -> Unit = {},
     private val onHandFinished: (hand: Hand) -> Unit = {}
 ) {
-    private var _followingHandIndexes: MutableList<Int> = hands.indices.toMutableList()
-    private var _currentIndex: Int = hands.indexOf(startHand)
+    private var _followingHandIndexes: MutableList<Int> = _hands.indices.toMutableList()
+    private var _currentIndex: Int = _hands.indexOf(startHand)
     private var _timeLimitPerTurn: Long = 15000L
     private var _turnJob: Job? = null
     private val _currentTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _previousTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _remainingTimeForTurn: MutableStateFlow<Long> = MutableStateFlow(_timeLimitPerTurn)
-    private val _ownerOfHandGoingToMakeTurn: MutableStateFlow<Player> = MutableStateFlow(getCurrentHand().owner)
+    private val _currentHand: Hand get() { return _hands[_followingHandIndexes[_currentIndex]] }
+    private val _ownerOfHandGoingToMakeTurn: MutableStateFlow<Player> = MutableStateFlow(_currentHand.owner)
 
     val currentTurn: StateFlow<Turn?> = _currentTurn.asStateFlow()
     val previousTurn: StateFlow<Turn?> = _previousTurn.asStateFlow()
@@ -41,12 +42,8 @@ class Round(
         nextTurn()
     }
 
-    private fun getCurrentHand() : Hand {
-        return hands[_followingHandIndexes[_currentIndex]]
-    }
-
     private fun makeDecisionForHand(turn: Turn, accept: Boolean) {
-        getCurrentHand().applyTurnDecision(turn = turn, roundAccept = accept)
+        _currentHand.applyTurnDecision(turn = turn, roundAccept = accept)
     }
 
     private fun handlePlayTurn(turn: Turn) {
@@ -64,9 +61,8 @@ class Round(
         makeDecisionForHand(turn, true)
 
         // If this hand had finished, remove it from following hands list
-        val currentHand = getCurrentHand()
-        if (currentHand.numberOfRemainingCards == 0) {
-            onHandFinished(currentHand)
+        if (_currentHand.numberOfRemainingCards == 0) {
+            onHandFinished(_currentHand)
             _followingHandIndexes.removeAt(_currentIndex)
             if (_currentIndex == _followingHandIndexes.size) { _currentIndex = 0 }
             return
@@ -91,7 +87,7 @@ class Round(
         _turnJob?.cancel()
         _turnJob = null
 
-        if (hands.isEmpty()) {
+        if (_hands.isEmpty()) {
             makeDecisionForHand(turn, false)
             throw NoSuchElementException("No hands available to play a turn.")
         }
@@ -101,7 +97,7 @@ class Round(
             throw IndexOutOfBoundsException("Invalid current index.")
         }
 
-        if (turn.owner != getCurrentHand().owner) {
+        if (turn.owner != _currentHand.owner) {
             makeDecisionForHand(turn, false)
             throw  IllegalAccessException("It's not your turn.")
         }
@@ -114,10 +110,10 @@ class Round(
         // A hand had just finished and there is no hand follow theirs turn,
         // so the hand next to they have right to begin the new round.
         if (_followingHandIndexes.isEmpty()) {
-            for (i in hands.indices) {
-                if (hands[i].owner == _currentTurn.value?.owner) {
-                    val indexOfHandBeginNextRound = (i + 1) % hands.size
-                    onRoundEnd(hands[indexOfHandBeginNextRound])
+            for (i in _hands.indices) {
+                if (_hands[i].owner == _currentTurn.value?.owner) {
+                    val indexOfHandBeginNextRound = (i + 1) % _hands.size
+                    onRoundEnd(_hands[indexOfHandBeginNextRound])
                     return
                 }
             }
@@ -126,8 +122,8 @@ class Round(
 
         // Only 2 hands in following list and 1 hand had just left(index was update by handleSkip), now only you still in this
         // -> You win and you have right to make the first turn of next round.
-        if (getCurrentHand().owner == _currentTurn.value?.owner && _followingHandIndexes.size == 1) {
-            onRoundEnd(hands[_followingHandIndexes.first()])
+        if (_currentHand.owner == _currentTurn.value?.owner && _followingHandIndexes.size == 1) {
+            onRoundEnd(_hands[_followingHandIndexes.first()])
             return
         }
 
@@ -138,34 +134,38 @@ class Round(
 
     private fun nextTurn() {
         _turnJob?.cancel()
-        val currentHand = getCurrentHand()
         updateOwnerOfHandGoingToMakeTurn()
 
         _turnJob = CoroutineScope(Dispatchers.Default).launch {
             _remainingTimeForTurn.value = _timeLimitPerTurn
 
-            val countDownJob = launch {
+            val countDownJob: Job = launch {
                 while (_remainingTimeForTurn.value > 0) {
                     delay(1000)
                     _remainingTimeForTurn.value -= 1000
                 }
             }
 
-            if (currentHand.owner.isHuman) {
+            var turn: Turn
+            if (_currentHand.owner.isHuman) {
                 delay(_timeLimitPerTurn)
-                processTurn(currentHand.submitTurn(TurnAction.SKIP))
+                turn = if (_currentTurn.value == null) {
+                    _bot.takeHand(_currentHand).makeTurn(_currentTurn.value)
+                } else {
+                    _currentHand.submitTurn(TurnAction.SKIP)
+                }
             } else {
                 val delayTime = Random.nextLong(1000L, 3001L)
                 delay(delayTime)
-                val botTurn: Turn = bot.takeHand(currentHand).makeTurn(_currentTurn.value)
-                processTurn(botTurn)
+                turn = _bot.takeHand(_currentHand).makeTurn(_currentTurn.value)
             }
+            processTurn(turn)
 
             countDownJob.cancel()
         }
     }
 
     private fun updateOwnerOfHandGoingToMakeTurn() {
-        _ownerOfHandGoingToMakeTurn.value = getCurrentHand().owner
+        _ownerOfHandGoingToMakeTurn.value = _currentHand.owner
     }
 }

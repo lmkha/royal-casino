@@ -16,20 +16,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class Game(players: List<Player>) {
-    private var _isFirstGame: Boolean = true
     private lateinit var _deck: Deck
     private lateinit var _bot: Bot
     private lateinit var _handWonPreviousRound: Hand
+    private var _isFirstGame: Boolean = true
     private var _hands: MutableList<Hand> = mutableListOf()
     private var _result: MutableList<Player> = mutableListOf()
     private val _currentRound: MutableStateFlow<Round?> = MutableStateFlow(null)
     private val _numberOfRemainingCards: MutableStateFlow<List<Int>> = MutableStateFlow(emptyList())
     private val _isOver: MutableStateFlow<Boolean> = MutableStateFlow(false)
 
+    val myHand: Hand get() = _hands[0]
     val currentRound: StateFlow<Round?> = _currentRound.asStateFlow()
     val numberOfRemainingCards: StateFlow<List<Int>> = _numberOfRemainingCards.asStateFlow()
     val isOver: StateFlow<Boolean> = _isOver.asStateFlow()
-    val myHand: Hand get() = _hands[0]
+
     init {
         players.forEach { _hands.add(Hand(it)) }
     }
@@ -61,9 +62,9 @@ class Game(players: List<Player>) {
 
     private fun startNewRound() {
         _currentRound.value = Round(
-            hands = _hands.filter { it.numberOfRemainingCards > 0 },
+            _hands = _hands.filter { it.numberOfRemainingCards > 0 },
             startHand = _handWonPreviousRound,
-            bot = _bot,
+            _bot = _bot,
             onTurnFinished = { updateNumbersOfRemainingCard() },
             onRoundEnd = { wonHand ->
                 _handWonPreviousRound = wonHand
@@ -78,10 +79,6 @@ class Game(players: List<Player>) {
     private fun updateNumbersOfRemainingCard() {
         _numberOfRemainingCards.value = _hands.map { it.numberOfRemainingCards }.toList()
     }
-
-//    fun getHand(handIndex: Int): Hand {
-//        return _hands[handIndex]
-//    }
 
     private fun handleHandFinished(hand: Hand) {
         _result.add(hand.owner)

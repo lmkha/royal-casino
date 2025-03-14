@@ -16,36 +16,42 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class Game(players: List<Player>) {
-    private var isFirstGame: Boolean = true
-    private lateinit var deck: Deck
-    private var hands: MutableList<Hand> = mutableListOf()
-    private lateinit var bot: Bot
+    private var _isFirstGame: Boolean = true
+    private lateinit var _deck: Deck
+    private lateinit var _bot: Bot
+    private lateinit var _handWonPreviousRound: Hand
+    private var _hands: MutableList<Hand> = mutableListOf()
+    private var _result: MutableList<Player> = mutableListOf()
     private val _currentRound: MutableStateFlow<Round?> = MutableStateFlow(null)
+    private val _numberOfRemainingCards: MutableStateFlow<List<Int>> = MutableStateFlow(emptyList())
+    private val _isOver: MutableStateFlow<Boolean> = MutableStateFlow(false)
+
     val currentRound: StateFlow<Round?> = _currentRound.asStateFlow()
-    private lateinit var handWonPreviousRound: Hand
-    private var result: MutableList<Player> = mutableListOf()
-    val isOver: Boolean
-        get() {
-            return result.size == hands.size
-        }
+    val numberOfRemainingCards: StateFlow<List<Int>> = _numberOfRemainingCards.asStateFlow()
+    val isOver: StateFlow<Boolean> = _isOver.asStateFlow()
+    val myHand: Hand get() = _hands[0]
     init {
-        players.forEach { hands.add(Hand(it)) }
+        players.forEach { _hands.add(Hand(it)) }
     }
 
     fun setupNewGame() {
-        if (hands.size < 2 || hands.size > 4) throw Exception("Number of players must be between 2 and 4")
-        deck = Deck.newDeck().apply { shuffle() }
+        if (_hands.size < 2 || _hands.size > 4) throw Exception("Number of players must be between 2 and 4")
+        _deck = Deck.newDeck().apply { shuffle() }
 
-        val cardsOfDeck = deck.getDevDeck01Original().toMutableList()
-        hands.forEach { hand->
+        val cardsOfDeck = _deck.getDevDeck01Original().toMutableList()
+//        _deck.shuffle()
+//        val cardsOfDeck = _deck.getCards().toMutableList()
+
+        _hands.forEach { hand->
             cardsOfDeck.take(13).let {drawnCards ->
                 hand.receiveCards(drawnCards)
                 hand.sortCardsInHand()
                 cardsOfDeck.removeAll(drawnCards)
             }
         }
-        bot = BotLevel1()
-        handWonPreviousRound = hands.find { it.getCardsInHand().contains(Card(CardRank.THREE, CardSuit.SPADE)) }!!
+        _bot = BotLevel1()
+        _handWonPreviousRound = _hands.find { it.getCardsInHand().contains(Card(CardRank.THREE, CardSuit.SPADE)) }!!
+        updateNumbersOfRemainingCard()
     }
 
     fun startNewGame() {
@@ -55,11 +61,12 @@ class Game(players: List<Player>) {
 
     private fun startNewRound() {
         _currentRound.value = Round(
-            hands = hands.filter { it.numberOfRemainingCards > 0 },
-            startHand = handWonPreviousRound,
-            bot = bot,
+            hands = _hands.filter { it.numberOfRemainingCards > 0 },
+            startHand = _handWonPreviousRound,
+            bot = _bot,
+            onTurnFinished = { updateNumbersOfRemainingCard() },
             onRoundEnd = { wonHand ->
-                handWonPreviousRound = wonHand
+                _handWonPreviousRound = wonHand
                 startNewRound()
             },
             onHandFinished = { handFinished ->
@@ -68,29 +75,33 @@ class Game(players: List<Player>) {
         )
     }
 
-    fun getHand(handIndex: Int): Hand {
-        return hands[handIndex]
+    private fun updateNumbersOfRemainingCard() {
+        _numberOfRemainingCards.value = _hands.map { it.numberOfRemainingCards }.toList()
     }
 
+//    fun getHand(handIndex: Int): Hand {
+//        return _hands[handIndex]
+//    }
+
     private fun handleHandFinished(hand: Hand) {
-        result.add(hand.owner)
+        _result.add(hand.owner)
         // Game over, add the remaining hand to to end of result list
-        if (result.size == hands.size - 1) {
+        if (_result.size == _hands.size - 1) {
             handleGameOver()
         }
     }
 
     private fun handleGameOver() {
-        val remainingHandOwner = hands.find { it.numberOfRemainingCards != 0 }?.owner
+        val remainingHandOwner = _hands.find { it.numberOfRemainingCards != 0 }?.owner
         if (remainingHandOwner != null) {
-            result.add(remainingHandOwner)
+            _result.add(remainingHandOwner)
         }
         showResult()
     }
 
     private fun showResult() {
         println("Game over!!!\nResult:")
-        result.forEachIndexed { index, player ->
+        _result.forEachIndexed { index, player ->
             println("Rank ${index+1}: ${player.name}")
         }
     }
@@ -102,25 +113,25 @@ class Game(players: List<Player>) {
             + Consecutive pairs include Card(CardRank.THREE, CardSuit.SPADE)
             + 4 of a kind (CardRank.THREE)
         */
-        if (isFirstGame) {
+        if (_isFirstGame) {
             // Cards in hand were sorted, so if all 4 beginning cards have Rank.Three, then it's auto win
-            val firstGameHaveRankThreeX4Hand = hands.find { hand->
+            val firstGameHaveRankThreeX4Hand = _hands.find { hand->
                 hand.getCardsInHand().subList(0, 4).all { it.rank == CardRank.THREE }
             }
             if (firstGameHaveRankThreeX4Hand != null) {
-                result.add(firstGameHaveRankThreeX4Hand.owner)
+                _result.add(firstGameHaveRankThreeX4Hand.owner)
             }
 
             // Consecutive pairs include Card(CardRank.THREE, CardSuit.SPADE)
-            val firstGameHaveConsecutivePairIncludeSpadeThree = hands.find { hand->
+            val firstGameHaveConsecutivePairIncludeSpadeThree = _hands.find { hand->
                 val sixBeginningCardsOfHand = hand.getCardsInHand().subList(0, 6)
                 sixBeginningCardsOfHand.contains(Card(CardRank.THREE, CardSuit.SPADE)) &&
                         CardCombination(sixBeginningCardsOfHand).type == CardCombinationType.CONSECUTIVE_PAIRS
             }
             if (firstGameHaveConsecutivePairIncludeSpadeThree != null &&
-                !result.contains(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
+                !_result.contains(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
             ) {
-                result.add(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
+                _result.add(firstGameHaveConsecutivePairIncludeSpadeThree.owner)
             }
         }
 
@@ -133,36 +144,36 @@ class Game(players: List<Player>) {
            + Straight with length = 12
         */
         // Three of a kind x 4
-        for (hand in hands) {
-            if (result.contains(hand.owner)) continue
+        for (hand in _hands) {
+            if (_result.contains(hand.owner)) continue
             val rankMap = mutableMapOf<CardRank, Int>()
             var threeOfAKindCount = 0
             hand.getCardsInHand().map { it.rank }.forEach { rank->
                 rankMap[rank] = rankMap.getOrDefault(rank, 0) + 1
             }
-            if (rankMap.size == 4) result.add(hand.owner)
+            if (rankMap.size == 4) _result.add(hand.owner)
             if (rankMap.size == 5) {
                 rankMap.forEach { (_, count) ->
                     if (count >= 3) threeOfAKindCount++
                 }
 
-                if (threeOfAKindCount == 4) result.add(hand.owner)
+                if (threeOfAKindCount == 4) _result.add(hand.owner)
             }
         }
 
         // Pair x6
-        for (hand in hands) {
-            if (result.contains(hand.owner)) continue
+        for (hand in _hands) {
+            if (_result.contains(hand.owner)) continue
             val rankSet = mutableSetOf<CardRank>()
             hand.getCardsInHand().forEach { card: Card ->
                 rankSet.add(card.rank)
             }
-            if (rankSet.size <= 7) result.add(hand.owner)
+            if (rankSet.size <= 7) _result.add(hand.owner)
         }
 
         // 5 consecutive pairs
-        for (hand in hands) {
-            if (result.contains(hand.owner)) continue
+        for (hand in _hands) {
+            if (_result.contains(hand.owner)) continue
             val rankMap = mutableMapOf<CardRank, Int>()
             hand.getCardsInHand().forEach { card->
                 rankMap[card.rank] = rankMap.getOrDefault(card.rank, 0) + 1
@@ -172,27 +183,27 @@ class Game(players: List<Player>) {
             }.keys.toList().sorted()
 
             if (pairRank.size == 5 && pairRank[4].ordinal - pairRank[0].ordinal == 4) {
-                result.add(hand.owner)
+                _result.add(hand.owner)
             }
 
             if (pairRank.size == 6) {
                 if (pairRank[4].ordinal - pairRank[0].ordinal == 4 ||
                     pairRank[5].ordinal - pairRank[1].ordinal == 4
                 ) {
-                    result.add(hand.owner)
+                    _result.add(hand.owner)
                 }
             }
         }
 
         // Straight with length = 12
-        for (hand in hands) {
-            if (result.contains(hand.owner)) continue
+        for (hand in _hands) {
+            if (_result.contains(hand.owner)) continue
             val rankSet = mutableSetOf<CardRank>()
             hand.getCardsInHand().forEach { card->
                 rankSet.add(card.rank)
             }
             if (rankSet.size == 13 || (rankSet.size == 12 && !rankSet.contains(CardRank.TWO))) {
-                result.add(hand.owner)
+                _result.add(hand.owner)
             }
         }
     }

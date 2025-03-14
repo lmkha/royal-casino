@@ -6,7 +6,7 @@ import com.example.royalcasino.domain.model.turn.Turn
 import com.example.royalcasino.domain.model.turn.TurnAction
 
 // Bot level1 always decide to play whenever its hand is able to play
-class BotLevel1 : Bot() {
+open class BotLevel1 : Bot() {
     override fun followTurn(opponentTurn: Turn): Turn {
         val opponentCombination = opponentTurn.combination ?:
             throw IllegalArgumentException("Combination of current's round cannot null.")

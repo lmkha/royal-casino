@@ -1,8 +1,8 @@
 package com.example.royalcasino.domain.model.round
 
-import android.util.Log
 import com.example.royalcasino.domain.bot.Bot
 import com.example.royalcasino.domain.model.hand.Hand
+import com.example.royalcasino.domain.model.player.Player
 import com.example.royalcasino.domain.model.turn.Turn
 import com.example.royalcasino.domain.model.turn.TurnAction
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +19,7 @@ class Round(
     private val hands: List<Hand>,
     startHand: Hand,
     private val bot: Bot,
+    private val onTurnFinished: () -> Unit = {},
     private val onRoundEnd: (wonHand: Hand) -> Unit = {},
     private val onHandFinished: (hand: Hand) -> Unit = {}
 ) {
@@ -29,17 +30,14 @@ class Round(
     private val _currentTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _previousTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _remainingTimeForTurn: MutableStateFlow<Long> = MutableStateFlow(_timeLimitPerTurn)
-    private val _numberOfRemainingCards: MutableStateFlow<List<Int>> = MutableStateFlow(emptyList())
-    private val _indexOfHandGoingToMakeTurn: MutableStateFlow<Int> = MutableStateFlow(0)
+    private val _ownerOfHandGoingToMakeTurn: MutableStateFlow<Player> = MutableStateFlow(getCurrentHand().owner)
 
     val currentTurn: StateFlow<Turn?> = _currentTurn.asStateFlow()
     val previousTurn: StateFlow<Turn?> = _previousTurn.asStateFlow()
     val remainingTimeForTurn: StateFlow<Long> = _remainingTimeForTurn.asStateFlow()
-    val numberOfRemainingCards: StateFlow<List<Int>> = _numberOfRemainingCards.asStateFlow()
-    val indexOfHandGoingToMakeTurn: StateFlow<Int> = _indexOfHandGoingToMakeTurn.asStateFlow()
+    val ownerOfHandGoingToMakeTurn: StateFlow<Player> = _ownerOfHandGoingToMakeTurn.asStateFlow()
 
     init {
-        updateNumbersOfRemainingCard()
         nextTurn()
     }
 
@@ -133,7 +131,7 @@ class Round(
             return
         }
 
-        updateNumbersOfRemainingCard()
+        onTurnFinished()
 
         nextTurn()
     }
@@ -141,7 +139,7 @@ class Round(
     private fun nextTurn() {
         _turnJob?.cancel()
         val currentHand = getCurrentHand()
-        updateIndexOfHandGoingToMakeTurn()
+        updateOwnerOfHandGoingToMakeTurn()
 
         _turnJob = CoroutineScope(Dispatchers.Default).launch {
             _remainingTimeForTurn.value = _timeLimitPerTurn
@@ -167,13 +165,7 @@ class Round(
         }
     }
 
-    private fun updateIndexOfHandGoingToMakeTurn() {
-        Log.i("CHECK_VAR", "Before update index: ${indexOfHandGoingToMakeTurn.value}")
-        _indexOfHandGoingToMakeTurn.value = _followingHandIndexes[_currentIndex]
-        Log.i("CHECK_VAR", "After update index: ${indexOfHandGoingToMakeTurn.value}")
-    }
-
-    private fun updateNumbersOfRemainingCard() {
-        _numberOfRemainingCards.value = hands.map { it.numberOfRemainingCards }.toList()
+    private fun updateOwnerOfHandGoingToMakeTurn() {
+        _ownerOfHandGoingToMakeTurn.value = getCurrentHand().owner
     }
 }

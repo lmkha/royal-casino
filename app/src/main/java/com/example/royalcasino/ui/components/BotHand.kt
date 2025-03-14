@@ -1,6 +1,5 @@
 package com.example.royalcasino.ui.components
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
@@ -22,21 +21,23 @@ fun BotHand(
     cardAlignment: Alignment = Alignment.TopCenter,
     cardWidth: Dp = 70.dp
 ) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        CardItem(
-            state = CardState(FaceDownCard),
-            modifier = Modifier
-                .width(cardWidth)
-                .align(cardAlignment)
-        )
-        Text(
-            text = numberOfRemainingCard.toString(),
-            fontSize = 32.sp,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-        )
+    if (numberOfRemainingCard > 0) {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            CardItem(
+                state = CardState(FaceDownCard),
+                modifier = Modifier
+                    .width(cardWidth)
+                    .align(cardAlignment)
+            )
+            Text(
+                text = numberOfRemainingCard.toString(),
+                fontSize = 32.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }

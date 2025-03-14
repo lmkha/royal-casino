@@ -78,6 +78,30 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                 .align(Alignment.TopEnd)
         )
 
+        Hand(
+            cardsInHand = uiState.cardStates,
+            isMyTurn = uiState.indexOfHandGoingToMakeTurn == 0,
+            onCardClick = { index -> viewModel.clickCard(index) },
+            onPlayTurn = { viewModel.playTurn() },
+            onSkipTurn = { viewModel.skipTurn() },
+            enableSkipTurn = uiState.enableSkipTurn,
+            enablePlayTurn = uiState.enablePlayTurn,
+            modifier = Modifier
+                .padding(bottom = 24.dp)
+                .align(Alignment.BottomCenter),
+        )
+
+        BotHand(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 56.dp)
+                .border(
+                    width = if (uiState.indexOfHandGoingToMakeTurn == 1) 5.dp else 0.dp,
+                    color = if(uiState.indexOfHandGoingToMakeTurn == 1) Color.Green else Color.Transparent
+                ),
+            numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(1) ?: 0
+        )
+
         BotHand(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -98,30 +122,6 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                     color = if(uiState.indexOfHandGoingToMakeTurn == 3) Color.Green else Color.Transparent
                 ),
             numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(3) ?: 0
-        )
-
-        BotHand(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 56.dp)
-                .border(
-                    width = if (uiState.indexOfHandGoingToMakeTurn == 1) 5.dp else 0.dp,
-                    color = if(uiState.indexOfHandGoingToMakeTurn == 1) Color.Green else Color.Transparent
-                ),
-            numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(1) ?: 0
-        )
-
-        Hand(
-            cardsInHand = uiState.cardStates,
-            isMyTurn = uiState.indexOfHandGoingToMakeTurn == 0,
-            onCardClick = { index -> viewModel.clickCard(index) },
-            onPlayTurn = { viewModel.playTurn() },
-            onSkipTurn = { viewModel.skipTurn() },
-            enableSkipTurn = uiState.enableSkipTurn,
-            enablePlayTurn = uiState.enablePlayTurn,
-            modifier = Modifier
-                .padding(bottom = 24.dp)
-                .align(Alignment.BottomCenter),
         )
     }
 }

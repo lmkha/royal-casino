@@ -36,6 +36,7 @@ abstract class Bot {
         return straightLengthArr
     }
     protected fun calculatePairValueArray(cards: List<Card>) : IntArray {
+        if (cards.size == 1) return intArrayOf(0)
         val pairValueArr = IntArray(cards.size) { 0 }
         if (cards[cards.size - 1].rank != CardRank.TWO &&
             cards[cards.size - 1].rank == cards[cards.size - 2].rank

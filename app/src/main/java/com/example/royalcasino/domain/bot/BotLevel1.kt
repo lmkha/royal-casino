@@ -1,9 +1,9 @@
 package com.example.royalcasino.domain.bot
 
-import com.example.royalcasino.domain.model.card.combination.CardCombinationType
-import com.example.royalcasino.domain.model.card.rank.CardRank
-import com.example.royalcasino.domain.model.turn.Turn
-import com.example.royalcasino.domain.model.turn.TurnAction
+import com.example.royalcasino.domain.core.card.combination.CardCombinationType
+import com.example.royalcasino.domain.core.card.rank.CardRank
+import com.example.royalcasino.domain.core.turn.Turn
+import com.example.royalcasino.domain.core.turn.TurnAction
 
 // Bot level1 always decide to play whenever its hand is able to play
 open class BotLevel1 : Bot() {
@@ -11,9 +11,10 @@ open class BotLevel1 : Bot() {
         val opponentCombination = opponentTurn.combination ?:
             throw IllegalArgumentException("Combination of current's round cannot null.")
 
+        val cards = hand.getCardsInHand()
+
         when (opponentCombination.type) {
             CardCombinationType.SINGLE -> {
-                val cards = hand.getCardsInHand()
                 cards.forEachIndexed { index, card ->
                     if (card > opponentCombination.getCard(0)) {
                         hand.addCardToCombinationByIndex(index)
@@ -22,10 +23,9 @@ open class BotLevel1 : Bot() {
                 }
             }
             CardCombinationType.PAIR -> {
-                val cardsInHand = hand.getCardsInHand()
-                for (i in 1 until cardsInHand.size) {
-                    if (cardsInHand[i].rank == cardsInHand[i - 1].rank &&
-                        cardsInHand[i] > opponentCombination.getCard(1)
+                for (i in 1 until cards.size) {
+                    if (cards[i].rank == cards[i - 1].rank &&
+                        cards[i] > opponentCombination.getCard(1)
                     ) {
                         hand.addCardToCombinationByIndex(i - 1)
                         hand.addCardToCombinationByIndex(i)
@@ -34,11 +34,10 @@ open class BotLevel1 : Bot() {
                 }
             }
             CardCombinationType.THREE_OF_A_KIND -> {
-                val cardsInHand = hand.getCardsInHand()
-                for (i in 2 until cardsInHand.size) {
-                    if (cardsInHand[i].rank == cardsInHand[i - 1].rank &&
-                        cardsInHand[i].rank == cardsInHand[i - 2].rank &&
-                        cardsInHand[i] > opponentCombination.getCard(0)
+                for (i in 2 until cards.size) {
+                    if (cards[i].rank == cards[i - 1].rank &&
+                        cards[i].rank == cards[i - 2].rank &&
+                        cards[i] > opponentCombination.getCard(0)
                     ) {
                         hand.addCardToCombinationByIndex(i - 2)
                         hand.addCardToCombinationByIndex(i - 1)
@@ -51,12 +50,11 @@ open class BotLevel1 : Bot() {
                 // You need a greater four of a kind OR x4 consecutive pairs
 
                 // Check for greater four of a kind
-                val cardsInHand = hand.getCardsInHand()
-                for (i in 3 until cardsInHand.size) {
-                    if (cardsInHand[i].rank == cardsInHand[i - 1].rank &&
-                        cardsInHand[i].rank == cardsInHand[i - 2].rank &&
-                        cardsInHand[i].rank == cardsInHand[i - 3].rank &&
-                        cardsInHand[i] > opponentCombination.getCard(0)
+                for (i in 3 until cards.size) {
+                    if (cards[i].rank == cards[i - 1].rank &&
+                        cards[i].rank == cards[i - 2].rank &&
+                        cards[i].rank == cards[i - 3].rank &&
+                        cards[i] > opponentCombination.getCard(0)
                     ) {
                         hand.addCardToCombinationByIndex(i - 3)
                         hand.addCardToCombinationByIndex(i - 2)
@@ -67,18 +65,18 @@ open class BotLevel1 : Bot() {
                 }
 
                 // Check for x4 consecutive pairs
-                for (i in 7 until cardsInHand.size) {
-                    if (cardsInHand[i].rank != CardRank.TWO &&
-                        cardsInHand[i].rank == cardsInHand[i-1].rank &&
+                for (i in 7 until cards.size) {
+                    if (cards[i].rank != CardRank.TWO &&
+                        cards[i].rank == cards[i-1].rank &&
 
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-2].rank.ordinal + 1 &&
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-3].rank.ordinal + 1 &&
+                        cards[i].rank.ordinal == cards[i-2].rank.ordinal + 1 &&
+                        cards[i].rank.ordinal == cards[i-3].rank.ordinal + 1 &&
 
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-4].rank.ordinal + 2 &&
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-5].rank.ordinal + 2 &&
+                        cards[i].rank.ordinal == cards[i-4].rank.ordinal + 2 &&
+                        cards[i].rank.ordinal == cards[i-5].rank.ordinal + 2 &&
 
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-6].rank.ordinal + 3 &&
-                        cardsInHand[i].rank.ordinal == cardsInHand[i-7].rank.ordinal + 3
+                        cards[i].rank.ordinal == cards[i-6].rank.ordinal + 3 &&
+                        cards[i].rank.ordinal == cards[i-7].rank.ordinal + 3
                     ) {
                         for (j in i-7..i) {
                             hand.addCardToCombinationByIndex(j)
@@ -92,11 +90,9 @@ open class BotLevel1 : Bot() {
                 // 4 4 3 3 2 1 1 1 0
                 // 6 6 7 7 8 9 9 9 J
                 // 7 8 9
-                val cardsInHand = hand.getCardsInHand()
+                if (cards.size < opponentCombination.size) return hand.submitTurn(TurnAction.SKIP)
 
-                if (cardsInHand.size < opponentCombination.size) return hand.submitTurn(TurnAction.SKIP)
-
-                val straightLengthArr = calculateStraightValueArray()
+                val straightLengthArr = calculateStraightValueArray(cards)
                 val targetLength = opponentCombination.size
 
                 for (i in straightLengthArr.indices) {
@@ -104,25 +100,25 @@ open class BotLevel1 : Bot() {
                     if (straightLengthArr[i] < targetLength) continue
 
                     hand.addCardToCombinationByIndex(i)
-                    var previousCardRank = cardsInHand[i].rank
+                    var previousCardRank = cards[i].rank
                     var k = i + 1
 
-                    while (k < straightLengthArr.size && cardsInHand[k].rank.ordinal < cardsInHand[i].rank.ordinal + targetLength) {
-                        if (cardsInHand[k].rank.ordinal == previousCardRank.ordinal + 1) {
-                            if (cardsInHand[k].rank.ordinal == cardsInHand[i].rank.ordinal + targetLength - 1) {
-                                if (cardsInHand[k] > opponentCombination.getCard(targetLength - 1)) {
+                    while (k < straightLengthArr.size && cards[k].rank.ordinal < cards[i].rank.ordinal + targetLength) {
+                        if (cards[k].rank.ordinal == previousCardRank.ordinal + 1) {
+                            if (cards[k].rank.ordinal == cards[i].rank.ordinal + targetLength - 1) {
+                                if (cards[k] > opponentCombination.getCard(targetLength - 1)) {
                                     hand.addCardToCombinationByIndex(k)
                                     break
                                 }
                             } else {
                                 hand.addCardToCombinationByIndex(k)
-                                previousCardRank = cardsInHand[k].rank
+                                previousCardRank = cards[k].rank
                             }
                         }
                         k++
                     }
 
-                    if (k < cardsInHand.size && cardsInHand[k].rank.ordinal == cardsInHand[i].rank.ordinal + targetLength - 1) {
+                    if (k < cards.size && cards[k].rank.ordinal == cards[i].rank.ordinal + targetLength - 1) {
                         return hand.submitTurn(TurnAction.PLAY)
                     } else {
                         hand.removeAllCardFromCombination()
@@ -130,8 +126,7 @@ open class BotLevel1 : Bot() {
                 }
             }
             CardCombinationType.CONSECUTIVE_PAIRS -> {
-                val cardsInHand = hand.getCardsInHand()
-                if (cardsInHand.size < 6) return hand.submitTurn(TurnAction.SKIP)
+                if (cards.size < 6) return hand.submitTurn(TurnAction.SKIP)
                 val oppCombinationSize = opponentCombination.size
 
                 // If it is x3 consecutive pairs: we need greater x3 consecutive pairs, or x4 consecutive pairs, four of a kind
@@ -142,7 +137,7 @@ open class BotLevel1 : Bot() {
                 // If it is x4 consecutive pairs, you need greater x4 consecutive pairs
                 if (oppCombinationSize == 8) {
                     //3 44 555 66 777 8 Q
-                    val pairValueArr = calculatePairValueArray()
+                    val pairValueArr = calculatePairValueArray(cards)
 
                     val beginIndex: Int = pairValueArr.indexOf(4)
                     if (beginIndex == -1) return hand.submitTurn(TurnAction.SKIP)
@@ -151,7 +146,7 @@ open class BotLevel1 : Bot() {
                     while (pairValueArr[i] >= 1) {
                         if (pairValueArr[i] == 1 &&
                             pairValueArr[i - 1] == 1 &&
-                            cardsInHand[i] > opponentCombination.getCard(oppCombinationSize - 1)
+                            cards[i] > opponentCombination.getCard(oppCombinationSize - 1)
                         ) {
                             break
                         } else {

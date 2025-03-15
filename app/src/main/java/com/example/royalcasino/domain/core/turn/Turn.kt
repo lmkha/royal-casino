@@ -1,7 +1,7 @@
-package com.example.royalcasino.domain.model.turn
+package com.example.royalcasino.domain.core.turn
 
-import com.example.royalcasino.domain.model.card.combination.CardCombination
-import com.example.royalcasino.domain.model.player.Player
+import com.example.royalcasino.domain.core.card.combination.CardCombination
+import com.example.royalcasino.domain.core.player.Player
 
 data class Turn(
     val turnAction: TurnAction = TurnAction.SKIP,

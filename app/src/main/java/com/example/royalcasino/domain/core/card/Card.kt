@@ -1,8 +1,8 @@
-package com.example.royalcasino.domain.model.card
+package com.example.royalcasino.domain.core.card
 
 import com.example.royalcasino.R
-import com.example.royalcasino.domain.model.card.rank.CardRank
-import com.example.royalcasino.domain.model.card.suit.CardSuit
+import com.example.royalcasino.domain.core.card.rank.CardRank
+import com.example.royalcasino.domain.core.card.suit.CardSuit
 
 data class Card(
     val rank: CardRank,

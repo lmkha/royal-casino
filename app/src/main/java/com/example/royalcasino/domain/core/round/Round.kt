@@ -1,10 +1,10 @@
-package com.example.royalcasino.domain.model.round
+package com.example.royalcasino.domain.core.round
 
 import com.example.royalcasino.domain.bot.Bot
-import com.example.royalcasino.domain.model.hand.Hand
-import com.example.royalcasino.domain.model.player.Player
-import com.example.royalcasino.domain.model.turn.Turn
-import com.example.royalcasino.domain.model.turn.TurnAction
+import com.example.royalcasino.domain.core.hand.Hand
+import com.example.royalcasino.domain.core.player.Player
+import com.example.royalcasino.domain.core.turn.Turn
+import com.example.royalcasino.domain.core.turn.TurnAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

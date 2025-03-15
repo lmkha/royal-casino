@@ -1,4 +1,4 @@
-package com.example.royalcasino.domain.model.card.suit
+package com.example.royalcasino.domain.core.card.suit
 
 class SuitComparator {
     companion object {

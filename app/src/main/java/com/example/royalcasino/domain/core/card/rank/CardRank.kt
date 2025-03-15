@@ -1,4 +1,4 @@
-package com.example.royalcasino.domain.model.card.rank
+package com.example.royalcasino.domain.core.card.rank
 
 enum class CardRank(val label: String) : Comparable<CardRank> {
     THREE("3"),

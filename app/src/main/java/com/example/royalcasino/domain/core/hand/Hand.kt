@@ -1,11 +1,11 @@
-package com.example.royalcasino.domain.model.hand
+package com.example.royalcasino.domain.core.hand
 
-import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.combination.CardCombination
-import com.example.royalcasino.domain.model.card.combination.CardCombinationType
-import com.example.royalcasino.domain.model.player.Player
-import com.example.royalcasino.domain.model.turn.Turn
-import com.example.royalcasino.domain.model.turn.TurnAction
+import com.example.royalcasino.domain.core.card.Card
+import com.example.royalcasino.domain.core.card.combination.CardCombination
+import com.example.royalcasino.domain.core.card.combination.CardCombinationType
+import com.example.royalcasino.domain.core.player.Player
+import com.example.royalcasino.domain.core.turn.Turn
+import com.example.royalcasino.domain.core.turn.TurnAction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +29,15 @@ class Hand(val owner: Player) {
     }
     fun addCardToCombinationByIndex(index: Int) {
         _cards.value.getOrNull(index)?.let { card ->
+            cardCombination.addCard(card)
+        }
+    }
+    fun applyCombination(combination: CardCombination) {
+        val cardsInCombination = combination.getAllCards()
+        for (card in cardsInCombination) {
+            if (!_cards.value.contains(card)) {
+                throw IllegalArgumentException("Invalid combination: Some cards do not exist in this hand.")
+            }
             cardCombination.addCard(card)
         }
     }

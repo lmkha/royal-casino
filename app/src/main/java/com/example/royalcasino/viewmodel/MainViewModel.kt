@@ -2,12 +2,12 @@ package com.example.royalcasino.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.royalcasino.domain.model.card.ICardDrawable
-import com.example.royalcasino.domain.model.card.combination.CardCombinationType
-import com.example.royalcasino.domain.model.game.Game
-import com.example.royalcasino.domain.model.player.Player
-import com.example.royalcasino.domain.model.turn.Turn
-import com.example.royalcasino.domain.model.turn.TurnAction
+import com.example.royalcasino.domain.core.card.ICardDrawable
+import com.example.royalcasino.domain.core.card.combination.CardCombinationType
+import com.example.royalcasino.domain.core.game.Game
+import com.example.royalcasino.domain.core.player.Player
+import com.example.royalcasino.domain.core.turn.Turn
+import com.example.royalcasino.domain.core.turn.TurnAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

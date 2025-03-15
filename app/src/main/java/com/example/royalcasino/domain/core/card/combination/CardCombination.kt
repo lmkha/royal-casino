@@ -1,7 +1,7 @@
-package com.example.royalcasino.domain.model.card.combination
+package com.example.royalcasino.domain.core.card.combination
 
-import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.rank.CardRank
+import com.example.royalcasino.domain.core.card.Card
+import com.example.royalcasino.domain.core.card.rank.CardRank
 
 class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombination> {
     private var cards: MutableList<Card> = cards.toMutableList()

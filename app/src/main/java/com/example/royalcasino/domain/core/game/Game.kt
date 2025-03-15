@@ -1,16 +1,17 @@
-package com.example.royalcasino.domain.model.game
+package com.example.royalcasino.domain.core.game
 
 import com.example.royalcasino.domain.bot.Bot
 import com.example.royalcasino.domain.bot.BotLevel1
-import com.example.royalcasino.domain.model.Deck
-import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.combination.CardCombination
-import com.example.royalcasino.domain.model.card.combination.CardCombinationType
-import com.example.royalcasino.domain.model.card.rank.CardRank
-import com.example.royalcasino.domain.model.card.suit.CardSuit
-import com.example.royalcasino.domain.model.hand.Hand
-import com.example.royalcasino.domain.model.player.Player
-import com.example.royalcasino.domain.model.round.Round
+import com.example.royalcasino.domain.bot.BotLevel2
+import com.example.royalcasino.domain.core.Deck
+import com.example.royalcasino.domain.core.card.Card
+import com.example.royalcasino.domain.core.card.combination.CardCombination
+import com.example.royalcasino.domain.core.card.combination.CardCombinationType
+import com.example.royalcasino.domain.core.card.rank.CardRank
+import com.example.royalcasino.domain.core.card.suit.CardSuit
+import com.example.royalcasino.domain.core.hand.Hand
+import com.example.royalcasino.domain.core.player.Player
+import com.example.royalcasino.domain.core.round.Round
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +51,8 @@ class Game(players: List<Player>) {
                 cardsOfDeck.removeAll(drawnCards)
             }
         }
-        _bot = BotLevel1()
+//        _bot = BotLevel1()
+        _bot = BotLevel2()
         _handWonPreviousRound = _hands.find { it.getCardsInHand().contains(Card(CardRank.THREE, CardSuit.SPADE)) }!!
         updateNumbersOfRemainingCard()
     }
@@ -195,13 +197,15 @@ class Game(players: List<Player>) {
         // Straight with length = 12
         for (hand in _hands) {
             if (_result.contains(hand.owner)) continue
-            val rankSet = mutableSetOf<CardRank>()
-            hand.getCardsInHand().forEach { card->
-                rankSet.add(card.rank)
+            val cardsInHand = hand.getCardsInHand()
+            var extraCount = 0
+            for (i in 1 until cardsInHand.size) {
+                if (cardsInHand[i].rank.ordinal == cardsInHand[i - 1].rank.ordinal) {
+                    extraCount++
+                    if (extraCount > 1) break
+                }
             }
-            if (rankSet.size == 13 || (rankSet.size == 12 && !rankSet.contains(CardRank.TWO))) {
-                _result.add(hand.owner)
-            }
+            if (extraCount <= 1) _result.add(hand.owner)
         }
     }
 }

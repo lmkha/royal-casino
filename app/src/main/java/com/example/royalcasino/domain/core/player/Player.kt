@@ -1,4 +1,4 @@
-package com.example.royalcasino.domain.model.player
+package com.example.royalcasino.domain.core.player
 
 open class Player(val name: String, val isHuman: Boolean = true) {
     override fun toString(): String {

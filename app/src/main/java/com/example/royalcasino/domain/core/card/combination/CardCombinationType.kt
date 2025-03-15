@@ -1,4 +1,4 @@
-package com.example.royalcasino.domain.model.card.combination
+package com.example.royalcasino.domain.core.card.combination
 
 enum class CardCombinationType {
     SINGLE,

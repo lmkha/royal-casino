@@ -1,8 +1,8 @@
-package com.example.royalcasino.domain.model.card.combination
+package com.example.royalcasino.domain.core.card.combination
 
-import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.rank.CardRankComparator
-import com.example.royalcasino.domain.model.card.suit.CardSuit
+import com.example.royalcasino.domain.core.card.Card
+import com.example.royalcasino.domain.core.card.rank.CardRankComparator
+import com.example.royalcasino.domain.core.card.suit.CardSuit
 
 class CardCombinationComparator {
     companion object {

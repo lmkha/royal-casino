@@ -1,8 +1,8 @@
-package com.example.royalcasino.domain.model
+package com.example.royalcasino.domain.core
 
-import com.example.royalcasino.domain.model.card.Card
-import com.example.royalcasino.domain.model.card.rank.CardRank
-import com.example.royalcasino.domain.model.card.suit.CardSuit
+import com.example.royalcasino.domain.core.card.Card
+import com.example.royalcasino.domain.core.card.rank.CardRank
+import com.example.royalcasino.domain.core.card.suit.CardSuit
 import kotlin.random.Random
 
 class Deck private constructor(private var cards: List<Card>) {

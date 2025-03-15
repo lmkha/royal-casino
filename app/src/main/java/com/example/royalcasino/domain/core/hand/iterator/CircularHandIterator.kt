@@ -1,6 +1,6 @@
-package com.example.royalcasino.domain.model.hand.iterator
+package com.example.royalcasino.domain.core.hand.iterator
 
-import com.example.royalcasino.domain.model.hand.Hand
+import com.example.royalcasino.domain.core.hand.Hand
 
 class CircularHandIterator(hands: List<Hand>, startIndex: Int) : HandIterator {
     private var index = startIndex

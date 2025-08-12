@@ -7,19 +7,25 @@ import com.example.royalcasino.domain.core.hand.Hand
 import com.example.royalcasino.domain.core.turn.Turn
 
 abstract class Bot {
+
     protected lateinit var hand: Hand
+
     fun takeHand(hand: Hand) : Bot {
         this.hand = hand
         return this
     }
+
     fun makeTurn(opponentTurn: Turn?) : Turn {
         if (opponentTurn == null) return startNewRoundWithTurn()
         return followTurn(opponentTurn)
     }
+
     protected abstract fun followTurn(opponentTurn: Turn): Turn
+
     protected abstract fun startNewRoundWithTurn() : Turn
+
     protected fun calculateStraightValueArray(cards: List<Card>) : IntArray {
-        val straightLengthArr = IntArray(cards.size) { 0 }
+        val straightLengthArr = IntArray(cards.size)
 
         straightLengthArr[straightLengthArr.size - 1] = if (cards.last().rank != CardRank.TWO) 1 else 0
 
@@ -35,9 +41,10 @@ abstract class Bot {
 
         return straightLengthArr
     }
+
     protected fun calculatePairValueArray(cards: List<Card>) : IntArray {
         if (cards.size == 1) return intArrayOf(0)
-        val pairValueArr = IntArray(cards.size) { 0 }
+        val pairValueArr = IntArray(cards.size)
         if (cards[cards.size - 1].rank != CardRank.TWO &&
             cards[cards.size - 1].rank == cards[cards.size - 2].rank
         ) {
@@ -60,6 +67,7 @@ abstract class Bot {
 
         return pairValueArr
     }
+
     private fun getConsecutivePairsCombinationOrNull(cards: List<Card>, numOfPairs: Int) : CardCombination? {
         if (numOfPairs != 4 && numOfPairs != 3) {
             throw IllegalArgumentException("Invalid number of pairs: $numOfPairs. Only 3 or 4 consecutive pairs are allowed.")
@@ -82,7 +90,7 @@ abstract class Bot {
                 combination.addCard(cards[index])
                 prevCard = cards[index]
                 needIncreaseRank = false
-            } else if (needIncreaseRank == false) {
+            } else if (!needIncreaseRank) {
                 combination.addCard(cards[index])
                 prevCard = cards[index]
                 needIncreaseRank = true
@@ -92,12 +100,15 @@ abstract class Bot {
 
         return combination
     }
+
     protected fun get3ConsecutivePairsCombinationOrNull(cards: List<Card>) : CardCombination? {
         return getConsecutivePairsCombinationOrNull(cards, 3)
     }
+
     protected fun get4ConsecutivePairsCombinationOrNull(cards: List<Card>) : CardCombination? {
         return getConsecutivePairsCombinationOrNull(cards, 4)
     }
+
     protected fun getFourOfAKindsOrNull(cards: List<Card>) : List<CardCombination>? {
         if (cards.size < 4) return null
 
@@ -128,6 +139,7 @@ abstract class Bot {
 
         return result.toList()
     }
+
     protected fun getPairsOrNull(cards: List<Card>) : List<CardCombination>? {
         if (cards.size < 2) return null
         val result = mutableListOf<CardCombination>()
@@ -146,6 +158,7 @@ abstract class Bot {
 
         return if (!result.isEmpty()) result.toList() else null
     }
+
     protected fun getRemainingCardsAfterExcludingUltimateCombination(cards: List<Card>) : List<Card> {
         /*
         Order by priority:
@@ -204,6 +217,7 @@ abstract class Bot {
 
         return cards
     }
+
     protected fun getThreeOfAKindsOrNull(cards: List<Card>): List<CardCombination>? {
         if (cards.size < 3) return null
 
@@ -232,12 +246,13 @@ abstract class Bot {
 
         return result.toList()
     }
+
     protected fun getStraightOrNull(cards: List<Card>, startIndex: Int, straightSize: Int) : CardCombination? {
     if (startIndex < 0 || startIndex >= cards.size) return null
     if (straightSize < 3 || straightSize > 11) return null
     if (startIndex + straightSize > cards.size) return null
 
-    var combination = CardCombination()
+    val combination = CardCombination()
     combination.addCard(cards[startIndex])
     var prevCard = cards[startIndex]
     var index = startIndex + 1
@@ -264,5 +279,4 @@ abstract class Bot {
 
     return if (combination.size == straightSize) combination else null
     }
-
 }

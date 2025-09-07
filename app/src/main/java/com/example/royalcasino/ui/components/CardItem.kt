@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import com.example.royalcasino.viewmodel.CardState
+import com.example.royalcasino.core.card.CardState
 
 @Composable
 fun CardItem(state: CardState, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {

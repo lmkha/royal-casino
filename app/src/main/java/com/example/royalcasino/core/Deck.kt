@@ -7,20 +7,18 @@ import kotlin.random.Random
 
 class Deck private constructor(private var cards: List<Card>) {
     companion object {
-        private val prototypeDeck: Deck = Deck(createInitialDeck())
-
-        fun newDeck(): Deck {
-            return Deck(prototypeDeck.cards.toList())
+        fun newInstance(): Deck {
+            val newCards = createCardsForNewDeck()
+            return Deck(newCards)
         }
 
-        private fun createInitialDeck(): List<Card> {
-            val deck = mutableListOf<Card>()
-            for (suite in CardSuit.entries) {
-                for (rank in CardRank.entries) {
-                    deck.add(Card(rank, suite))
+        // It will create new list of cards in every single call
+        private fun createCardsForNewDeck(): List<Card> {
+            return CardSuit.entries.flatMap { suit ->
+                CardRank.entries.map { rank ->
+                    Card(rank, suit)
                 }
             }
-            return deck
         }
     }
 

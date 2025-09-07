@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.royalcasino.core.card.FaceDownCard
-import com.example.royalcasino.viewmodel.CardState
+import com.example.royalcasino.core.card.CardState
 
 @Composable
 fun BotHand(

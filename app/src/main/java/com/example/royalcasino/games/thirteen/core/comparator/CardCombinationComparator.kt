@@ -34,7 +34,7 @@ object CardCombinationComparator {
         val rankA = a.getCard(0).rank
         val rankB = b.getCard(0).rank
         if (rankA != rankB) {
-            ThirteenCardRankComparator.compare(rankA, rankB)
+            return ThirteenCardRankComparator.compare(rankA, rankB)
         }
         val isAGreater = a.getAllCards().map { it.suit }.contains(CardSuit.HEART)
         return if (isAGreater) 1 else -1

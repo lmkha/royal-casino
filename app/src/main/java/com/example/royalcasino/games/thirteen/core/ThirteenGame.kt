@@ -10,6 +10,7 @@ import com.example.royalcasino.games.thirteen.bot.Bot
 import com.example.royalcasino.games.thirteen.bot.BotLevel2
 import com.example.royalcasino.games.thirteen.core.combination.CardCombination
 import com.example.royalcasino.games.thirteen.core.combination.CardCombinationType
+import com.example.royalcasino.games.thirteen.core.turn.Turn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,7 +38,7 @@ class ThirteenGame(players: List<Player>) : Game {
 
     override fun setup() {
         if (_hands.size < 2 || _hands.size > 4) throw Exception("Number of players must be between 2 and 4")
-        _deck = Deck.newDeck().apply { shuffle() }
+        _deck = Deck.newInstance().apply { shuffle() }
 
         val cardsOfDeck = _deck.getDevDeck01Original().toMutableList()
 //        _deck.shuffle()
@@ -66,6 +67,18 @@ class ThirteenGame(players: List<Player>) : Game {
         startNewRound()
     }
 
+    fun processTurn(turn: Turn) {
+        _currentRound.value?.processTurn(turn)
+    }
+
+    fun pause() {
+        _currentRound.value?.pause()
+    }
+
+    fun resume() {
+        _currentRound.value?.resume()
+    }
+
     private fun startNewRound() {
         _currentRound.value = Round(
             _hands = _hands.filter { it.numberOfRemainingCards > 0 },
@@ -85,7 +98,9 @@ class ThirteenGame(players: List<Player>) : Game {
                     handleHandFinished(hand)
                 }
             },
-        )
+        ).also {
+            it.start()
+        }
     }
 
     private fun updateNumbersOfRemainingCard() {

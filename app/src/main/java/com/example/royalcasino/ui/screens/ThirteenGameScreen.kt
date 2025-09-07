@@ -24,10 +24,10 @@ import com.example.royalcasino.ui.components.BotHand
 import com.example.royalcasino.ui.components.CurrentTurn
 import com.example.royalcasino.ui.components.Hand
 import com.example.royalcasino.ui.components.PreviousTurn
-import com.example.royalcasino.viewmodel.MainViewModel
+import com.example.royalcasino.viewmodel.ThirteenGameViewModel
 
 @Composable
-fun MainScreen(viewModel: MainViewModel = viewModel()) {
+fun ThirteenGameScreen(viewModel: ThirteenGameViewModel = viewModel()) {
     val gameState by viewModel.gameState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -135,5 +135,5 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
 )
 @Composable
 fun MainScreenPreview() {
-    MainScreen()
+    ThirteenGameScreen()
 }

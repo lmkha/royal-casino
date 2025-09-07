@@ -11,6 +11,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -28,16 +30,13 @@ class Round(
     private val _previousTurn: MutableStateFlow<Turn?> = MutableStateFlow(null)
     private val _remainingTimeForTurn: MutableStateFlow<Long> = MutableStateFlow(_timeLimitPerTurn)
     private val _currentHand: Hand get() { return _hands[_followingHandIndexes[_currentIndex]] }
-    private val _ownerOfHandGoingToMakeTurn: MutableStateFlow<Player> =
-        MutableStateFlow(_currentHand.owner)
+    private val _ownerOfHandGoingToMakeTurn: MutableStateFlow<Player> = MutableStateFlow(_currentHand.owner)
+    private val _isPaused: MutableStateFlow<Boolean> = MutableStateFlow(false)
+
     val currentTurn: StateFlow<Turn?> = _currentTurn.asStateFlow()
     val previousTurn: StateFlow<Turn?> = _previousTurn.asStateFlow()
     val remainingTimeForTurn: StateFlow<Long> = _remainingTimeForTurn.asStateFlow()
     val ownerOfHandGoingToMakeTurn: StateFlow<Player> = _ownerOfHandGoingToMakeTurn.asStateFlow()
-
-    init {
-        nextTurn()
-    }
 
     interface Callback {
         fun onTurnFinished()
@@ -86,6 +85,10 @@ class Round(
         if (_currentIndex == _followingHandIndexes.size) {
             _currentIndex = 0
         }
+    }
+
+    fun start() {
+        nextTurn()
     }
 
     fun processTurn(turn: Turn) {
@@ -148,13 +151,19 @@ class Round(
 
             val countDownJob: Job = launch {
                 while (_remainingTimeForTurn.value > 0) {
+                    // suspend here until not paused
+                    _isPaused.filter { !it }.first()
                     delay(1000)
                     _remainingTimeForTurn.value -= 1000
                 }
             }
 
+            // suspend here until not paused
+            _isPaused.filter { !it }.first()
             var turn: Turn
             if (_currentHand.owner.isHuman) {
+                // During _timeLimitPerTurn count down, player can do Action with .submitTurn().
+                // However, if play do nothing during this time, the player's turn will be make by BOT's processing.
                 delay(_timeLimitPerTurn)
                 turn = if (_currentTurn.value == null) {
                     _bot.takeHand(_currentHand).makeTurn(_currentTurn.value)
@@ -174,5 +183,13 @@ class Round(
 
     private fun updateOwnerOfHandGoingToMakeTurn() {
         _ownerOfHandGoingToMakeTurn.value = _currentHand.owner
+    }
+
+    fun pause() {
+        _isPaused.value = true
+    }
+
+    fun resume() {
+        _isPaused.value = false
     }
 }

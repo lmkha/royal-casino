@@ -4,7 +4,6 @@ import com.example.royalcasino.core.card.Card
 import com.example.royalcasino.core.card.CardRank
 import com.example.royalcasino.core.utils.ComparisonResult
 import com.example.royalcasino.games.thirteen.core.comparator.CardCombinationComparator
-import com.example.royalcasino.games.thirteen.core.combination.CardCombinationType
 import com.example.royalcasino.games.thirteen.core.comparator.ThirteenCardComparator
 
 class CardCombination(cards: List<Card> = emptyList()) : Comparable<CardCombination> {

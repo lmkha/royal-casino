@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.example.royalcasino.viewmodel.CardState
+import com.example.royalcasino.core.card.CardState
 
 @SuppressLint("UseOfNonLambdaOffsetOverload")
 @Composable

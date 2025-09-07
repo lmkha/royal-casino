@@ -28,7 +28,7 @@ import com.example.royalcasino.viewmodel.MainViewModel
 
 @Composable
 fun MainScreen(viewModel: MainViewModel = viewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val gameState by viewModel.gameState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -42,7 +42,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             )
         }
 
-        if (!uiState.started) {
+        if (!gameState.started) {
             Button(
                 onClick = { viewModel.startGame() },
                 modifier = Modifier
@@ -52,9 +52,9 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             }
         }
 
-        if (uiState.started) {
+        if (gameState.started) {
             PreviousTurn(
-                turn = uiState.previousTurn,
+                turn = gameState.previousTurn,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .offset(
@@ -64,28 +64,30 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             )
 
             CurrentTurn(
-                turn = uiState.currentTurn,
+                turn = gameState.currentTurn,
                 modifier = Modifier
                     .align(Alignment.Center)
             )
 
         }
 
+        // Time for turn
         Text(
-            text = (uiState.remainingTimeForTurn / 1000L).toString(),
+            text = (gameState.remainingTimeForTurn / 1000L).toString(),
             modifier = Modifier
                 .padding(top = 24.dp, end = 24.dp)
                 .align(Alignment.TopEnd)
         )
 
+        // Hands
         Hand(
-            cardsInHand = uiState.cardStates,
-            isMyTurn = uiState.indexOfHandGoingToMakeTurn == 0,
+            cardsInHand = gameState.cardStates,
+            isMyTurn = gameState.indexOfHandGoingToMakeTurn == 0,
             onCardClick = { index -> viewModel.clickCard(index) },
             onPlayTurn = { viewModel.playTurn() },
             onSkipTurn = { viewModel.skipTurn() },
-            enableSkipTurn = uiState.enableSkipTurn,
-            enablePlayTurn = uiState.enablePlayTurn,
+            enableSkipTurn = gameState.enableSkipTurn,
+            enablePlayTurn = gameState.enablePlayTurn,
             modifier = Modifier
                 .padding(bottom = 24.dp)
                 .align(Alignment.BottomCenter),
@@ -96,10 +98,10 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                 .align(Alignment.CenterEnd)
                 .padding(end = 56.dp)
                 .border(
-                    width = if (uiState.indexOfHandGoingToMakeTurn == 1) 5.dp else 0.dp,
-                    color = if(uiState.indexOfHandGoingToMakeTurn == 1) Color.Green else Color.Transparent
+                    width = if (gameState.indexOfHandGoingToMakeTurn == 1) 5.dp else 0.dp,
+                    color = if(gameState.indexOfHandGoingToMakeTurn == 1) Color.Green else Color.Transparent
                 ),
-            numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(1) ?: 0
+            numberOfRemainingCard = gameState.numberOfRemainingCards.getOrNull(1) ?: 0
         )
 
         BotHand(
@@ -107,10 +109,10 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                 .align(Alignment.TopCenter)
                 .padding(top = 24.dp)
                 .border(
-                    width = if (uiState.indexOfHandGoingToMakeTurn == 2) 5.dp else 0.dp,
-                    color = if(uiState.indexOfHandGoingToMakeTurn == 2) Color.Green else Color.Transparent
+                    width = if (gameState.indexOfHandGoingToMakeTurn == 2) 5.dp else 0.dp,
+                    color = if(gameState.indexOfHandGoingToMakeTurn == 2) Color.Green else Color.Transparent
                 ),
-            numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(2) ?: 0
+            numberOfRemainingCard = gameState.numberOfRemainingCards.getOrNull(2) ?: 0
         )
 
         BotHand(
@@ -118,10 +120,10 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                 .align(Alignment.CenterStart)
                 .padding(start = 56.dp)
                 .border(
-                    width = if (uiState.indexOfHandGoingToMakeTurn == 3) 5.dp else 0.dp,
-                    color = if(uiState.indexOfHandGoingToMakeTurn == 3) Color.Green else Color.Transparent
+                    width = if (gameState.indexOfHandGoingToMakeTurn == 3) 5.dp else 0.dp,
+                    color = if(gameState.indexOfHandGoingToMakeTurn == 3) Color.Green else Color.Transparent
                 ),
-            numberOfRemainingCard = uiState.numberOfRemainingCards.getOrNull(3) ?: 0
+            numberOfRemainingCard = gameState.numberOfRemainingCards.getOrNull(3) ?: 0
         )
     }
 }

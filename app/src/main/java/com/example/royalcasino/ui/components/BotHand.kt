@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.royalcasino.domain.core.card.FaceDownCard
+import com.example.royalcasino.core.card.FaceDownCard
 import com.example.royalcasino.viewmodel.CardState
 
 @Composable

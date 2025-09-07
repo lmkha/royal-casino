@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.example.royalcasino.domain.core.turn.Turn
+import com.example.royalcasino.games.thirteen.core.turn.Turn
 import com.example.royalcasino.viewmodel.CardState
 
 @Composable
